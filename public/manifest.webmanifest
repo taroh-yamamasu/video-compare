@@ -1,0 +1,11 @@
+{
+  "name": "Video Compare",
+  "short_name": "VideoCompare",
+  "description": "2本の動画を端末内で読み込み、同期再生や重ね合わせで比較する練習用アプリです。",
+  "start_url": "/video-compare/",
+  "scope": "/video-compare/",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#f4f6f8",
+  "icons": []
+}
