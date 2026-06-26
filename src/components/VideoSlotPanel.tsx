@@ -111,14 +111,14 @@ export function VideoSlotPanel({
           onChange={(event) => onSeek(Number(event.currentTarget.value))}
           aria-label={`${slot.label}の再生位置`}
         />
-        <div className="slot-panel__actions">
+        <div className="slot-panel__actions slot-panel__actions--sync">
           <button type="button" onClick={onSetSyncPoint} disabled={!slot.isReady}>
             <CircleDot size={17} aria-hidden="true" />
             基準点
           </button>
           <span className="sync-readout">{formatTime(slot.syncPointSec)}</span>
         </div>
-        <div className="slot-panel__actions">
+        <div className="slot-panel__actions slot-panel__actions--solo">
           <button
             type="button"
             onClick={onToggleSoloPlay}

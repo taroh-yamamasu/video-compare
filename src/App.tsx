@@ -15,23 +15,22 @@ type SlotsState = Record<SlotId, VideoSlotState>;
 const SLOT_IDS: SlotId[] = ["left", "right"];
 
 function getInitialCompareDefaults(): CompareSettings {
-  const defaultLayout: LayoutMode =
-    typeof window !== "undefined" && window.innerWidth < 900 ? "stacked" : DEFAULT_COMPARE_SETTINGS.layoutMode;
-
   return {
     ...DEFAULT_COMPARE_SETTINGS,
-    layoutMode: defaultLayout,
+    layoutMode: DEFAULT_COMPARE_SETTINGS.layoutMode,
   };
 }
 
 function getInitialCompareSettings(): CompareSettings {
   const compareDefaults = getInitialCompareDefaults();
   const persisted = loadPersistedSettings(compareDefaults, DEFAULT_OVERLAY_SETTINGS);
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 760;
+  const layoutMode = isMobile && persisted.layoutMode === "stacked" ? "side-by-side" : persisted.layoutMode;
 
   return {
     ...compareDefaults,
     isLocked: persisted.isLocked,
-    layoutMode: persisted.layoutMode,
+    layoutMode,
     playbackRate: persisted.playbackRate,
     stepSeconds: persisted.stepSeconds,
   };

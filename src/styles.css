@@ -29,6 +29,7 @@ body,
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background:
     linear-gradient(180deg, rgba(15, 118, 110, 0.08), transparent 260px),
     #f4f6f8;
@@ -135,6 +136,7 @@ input[type="number"] {
 
 .app-main {
   display: grid;
+  min-width: 0;
   max-width: 1440px;
   margin: 0 auto;
   gap: 16px;
@@ -174,6 +176,7 @@ input[type="number"] {
 
 .video-grid {
   display: grid;
+  min-width: 0;
   gap: 16px;
 }
 
@@ -196,6 +199,7 @@ input[type="number"] {
 
 .slot-panel {
   display: grid;
+  min-width: 0;
   gap: 12px;
   padding: 14px;
 }
@@ -252,6 +256,8 @@ input[type="number"] {
 
 .slot-panel__video {
   display: grid;
+  width: 100%;
+  min-width: 0;
   min-height: 240px;
   overflow: hidden;
   border-radius: 8px;
@@ -262,6 +268,7 @@ input[type="number"] {
 .video-element,
 .video-placeholder {
   width: 100%;
+  min-width: 0;
   height: 100%;
   min-height: 100%;
 }
@@ -462,26 +469,58 @@ input[type="number"] {
 
 @media (max-width: 760px) {
   .app-shell {
-    padding: 12px;
+    padding: 8px;
   }
 
   .app-header {
     align-items: stretch;
     flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .app-header h1 {
+    font-size: 1.7rem;
+  }
+
+  .app-header p {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    padding: 5px 9px;
   }
 
   .mode-toolbar {
     justify-content: stretch;
+    gap: 8px;
   }
 
   .segmented-control {
-    width: 100%;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    box-shadow: none;
+  }
+
+  .segmented-control:first-child {
+    flex: 0 0 96px;
   }
 
   .segmented-control button {
     flex: 1;
     min-width: 0;
-    padding: 0 8px;
+    min-height: 34px;
+    padding: 0 6px;
+    font-size: 0.92rem;
+  }
+
+  .app-main {
+    gap: 10px;
+  }
+
+  .video-grid--side-by-side,
+  .video-grid--stacked {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .slot-panel,
@@ -490,9 +529,85 @@ input[type="number"] {
     box-shadow: 0 10px 26px rgba(28, 39, 49, 0.08);
   }
 
-  .slot-panel__video,
+  .slot-panel {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .slot-panel__header {
+    gap: 6px;
+  }
+
+  .slot-panel__title {
+    gap: 6px;
+  }
+
+  .slot-panel__title svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .slot-panel h2 {
+    font-size: 0.9rem;
+  }
+
+  .slot-panel p {
+    font-size: 0.72rem;
+  }
+
+  .select-video-button {
+    min-height: 38px;
+    gap: 6px;
+    font-size: 0.86rem;
+    padding: 0 6px;
+  }
+
+  .select-video-button svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .slot-panel__video {
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+  }
+
+  .video-placeholder {
+    font-size: 0.84rem;
+  }
+
+  .slot-panel__controls {
+    gap: 5px;
+  }
+
+  .time-row {
+    font-size: 0.72rem;
+  }
+
+  .slot-panel__actions {
+    gap: 6px;
+  }
+
+  .slot-panel__actions button {
+    min-height: 34px;
+    width: 100%;
+    padding: 0 6px;
+    font-size: 0.78rem;
+  }
+
+  .slot-panel__actions--sync {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .slot-panel__actions--sync .sync-readout,
+  .slot-panel__actions--solo {
+    display: none;
+  }
+
   .overlay-stage__canvas {
-    min-height: 210px;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
   }
 
   .transport-row {
