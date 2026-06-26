@@ -641,6 +641,122 @@ input[type="number"] {
   }
 }
 
+@media (max-width: 760px) and (orientation: landscape) {
+  .app-shell {
+    padding: 0;
+  }
+
+  .app-header {
+    gap: 6px;
+    margin-bottom: 6px;
+    padding: 8px;
+  }
+
+  .app-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .app-header p {
+    display: none;
+  }
+
+  .mode-toolbar {
+    gap: 6px;
+  }
+
+  .segmented-control {
+    border-radius: 8px;
+    padding: 3px;
+  }
+
+  .segmented-control:first-child {
+    flex-basis: 88px;
+  }
+
+  .segmented-control button {
+    min-height: 32px;
+    font-size: 0.82rem;
+  }
+
+  .app-main {
+    gap: 0;
+  }
+
+  .video-grid--side-by-side,
+  .video-grid--stacked {
+    gap: 0;
+  }
+
+  .slot-panel {
+    position: relative;
+    gap: 0;
+    border-radius: 0;
+    border-right-width: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .slot-panel:last-child {
+    border-right-width: 1px;
+  }
+
+  .slot-panel.has-video .slot-panel__header {
+    display: none;
+  }
+
+  .slot-panel.has-video .select-video-button {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 2;
+    width: auto;
+    min-height: 30px;
+    border-color: rgba(255, 255, 255, 0.68);
+    background: rgba(17, 24, 32, 0.64);
+    color: #fff;
+    font-size: 0.72rem;
+    padding: 0 9px;
+    backdrop-filter: blur(8px);
+  }
+
+  .slot-panel.has-video .select-video-button svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .slot-panel:not(.has-video) {
+    padding: 6px;
+  }
+
+  .slot-panel__video {
+    border-radius: 0;
+    aspect-ratio: 1 / 1;
+  }
+
+  .video-grid .slot-panel:first-child .slot-panel__video {
+    border-top-left-radius: 8px;
+  }
+
+  .video-grid .slot-panel:last-child .slot-panel__video {
+    border-top-right-radius: 8px;
+  }
+
+  .slot-panel__controls {
+    padding: 6px;
+  }
+
+  .slot-panel.has-video .slot-panel__actions--sync {
+    display: none;
+  }
+
+  .compare-controls {
+    border-radius: 0;
+    border-top: 0;
+    box-shadow: none;
+    padding: 8px;
+  }
+}
+
 @media (max-width: 430px) {
   .transport-row {
     grid-template-columns: 1fr 40px 40px;

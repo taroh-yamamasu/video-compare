@@ -47,7 +47,9 @@ export function VideoSlotPanel({
 
   return (
     <section
-      className={`slot-panel ${compact ? "slot-panel--compact" : ""} ${isDragging ? "is-dragging" : ""}`}
+      className={`slot-panel ${compact ? "slot-panel--compact" : ""} ${slot.objectUrl ? "has-video" : ""} ${
+        isDragging ? "is-dragging" : ""
+      }`}
       onDragEnter={(event) => {
         event.preventDefault();
         setIsDragging(true);
