@@ -60,6 +60,9 @@ export function CompareControls({
   const sliderValue = clamp(timelineTime, sliderMin, sliderMax);
 
   if (isFitCompareActive) {
+    const displayTime = sliderValue - sliderMin;
+    const displayMax = sliderMax - sliderMin;
+
     return (
       <section className="compare-controls compare-controls--active" aria-label="同期コントロール">
         <div className="compare-playback-controls">
@@ -67,7 +70,29 @@ export function CompareControls({
             {anyPlaying ? <Pause size={22} aria-hidden="true" /> : <Play size={22} aria-hidden="true" />}
             {anyPlaying ? "停止" : "再生"}
           </button>
-          <div className="time-chip">{formatTime(timelineTime)}</div>
+          <div className="time-chip">{formatTime(displayTime)}</div>
+          <label className="field field--rate field--active-rate">
+            <span>速度</span>
+            <select
+              value={settings.playbackRate}
+              onChange={(event) => onPlaybackRateChange(Number(event.currentTarget.value))}
+            >
+              {PLAYBACK_RATES.map((rate) => (
+                <option key={rate} value={rate}>
+                  {rate}x
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className={`secondary-control loop-toggle-button ${settings.loopEnabled ? "is-active" : ""}`}
+            onClick={onToggleLoop}
+            disabled={!bothReady}
+          >
+            <Repeat size={17} aria-hidden="true" />
+            ループ
+          </button>
           <button type="button" className="secondary-control" onClick={onExitFitCompare}>
             <RotateCcw size={17} aria-hidden="true" />
             編集に戻る
@@ -75,7 +100,7 @@ export function CompareControls({
         </div>
 
         <div className="timeline-row timeline-row--compact">
-          <span>{formatTime(sliderMin)}</span>
+          <span>{formatTime(0)}</span>
           <input
             type="range"
             min={sliderMin}
@@ -86,7 +111,7 @@ export function CompareControls({
             onChange={(event) => onSeek(Number(event.currentTarget.value))}
             aria-label="同期タイムライン"
           />
-          <span>{formatTime(sliderMax)}</span>
+          <span>{formatTime(displayMax)}</span>
         </div>
       </section>
     );

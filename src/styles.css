@@ -388,6 +388,17 @@ input[type="number"] {
   padding: 0 14px;
 }
 
+.loop-toggle-button.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.loop-toggle-button.is-active:hover:not(:disabled) {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+}
+
 .fit-start-button {
   min-height: 48px;
   border-color: var(--accent);
@@ -427,6 +438,14 @@ input[type="number"] {
 
 .field--rate select {
   width: 100%;
+}
+
+.field--active-rate {
+  min-width: 116px;
+}
+
+.field--active-rate span {
+  font-size: 0.72rem;
 }
 
 .advanced-controls {
@@ -840,12 +859,18 @@ input[type="number"] {
   }
 
   .compare-playback-controls {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .compare-playback-controls .primary-control,
+  .compare-playback-controls .secondary-control,
+  .compare-playback-controls .field--active-rate,
+  .compare-playback-controls .time-chip {
+    flex: 1 1 120px;
   }
 
   .compare-playback-controls .time-chip {
-    grid-column: 1 / -1;
     justify-content: center;
     margin-left: 0;
   }

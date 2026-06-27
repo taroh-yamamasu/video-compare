@@ -61,6 +61,29 @@ function getTimelineBounds(slots: SlotsState): { min: number; max: number } {
   return { min, max };
 }
 
+function getDefaultLoopRange(bounds: { min: number; max: number }): { loopStartSec: number; loopEndSec: number } {
+  return {
+    loopStartSec: bounds.min,
+    loopEndSec: bounds.max,
+  };
+}
+
+function isLoopRangeUsable(settings: CompareSettings, bounds: { min: number; max: number }): boolean {
+  return (
+    settings.loopStartSec >= bounds.min &&
+    settings.loopEndSec <= bounds.max &&
+    settings.loopEndSec > settings.loopStartSec
+  );
+}
+
+function shouldResetLoopRange(settings: CompareSettings, bounds: { min: number; max: number }): boolean {
+  return (
+    !isLoopRangeUsable(settings, bounds) ||
+    (settings.loopStartSec === DEFAULT_COMPARE_SETTINGS.loopStartSec &&
+      settings.loopEndSec === DEFAULT_COMPARE_SETTINGS.loopEndSec)
+  );
+}
+
 function areBothReady(slots: SlotsState): boolean {
   return slots.left.isReady && slots.right.isReady;
 }
@@ -179,15 +202,22 @@ export function App(): ReactElement {
         const masterVideo = getVideo(masterId);
 
         if (masterVideo && !masterVideo.paused && !masterVideo.ended) {
+          const bounds = getTimelineBounds(currentSlots);
           let normalized = masterVideo.currentTime - currentSlots[masterId].syncPointSec;
+          const loopStartSec = clamp(currentSettings.loopStartSec, bounds.min, bounds.max);
+          const loopEndSec = clamp(currentSettings.loopEndSec, bounds.min, bounds.max);
 
           if (
             currentSettings.loopEnabled &&
-            currentSettings.loopEndSec > currentSettings.loopStartSec &&
-            normalized >= currentSettings.loopEndSec
+            loopEndSec > loopStartSec &&
+            normalized >= loopEndSec
           ) {
-            normalized = currentSettings.loopStartSec;
+            normalized = loopStartSec;
             seekNormalized(normalized);
+          } else if (normalized >= bounds.max) {
+            normalized = bounds.max;
+            seekNormalized(normalized);
+            pauseVideos();
           } else {
             setTimelineTime(normalized);
           }
@@ -434,29 +464,42 @@ export function App(): ReactElement {
   }
 
   function handleToggleLoop(): void {
+    const bounds = getTimelineBounds(slotsRef.current);
+
     setSettings((previous) => ({
       ...previous,
       loopEnabled: !previous.loopEnabled,
+      ...(!previous.loopEnabled && shouldResetLoopRange(previous, bounds) ? getDefaultLoopRange(bounds) : {}),
     }));
   }
 
   function handleMarkLoopStart(): void {
     setSettings((previous) => {
-      const loopStartSec = timelineTime;
+      const bounds = getTimelineBounds(slotsRef.current);
+      const loopStartSec = clamp(timelineTime, bounds.min, bounds.max);
+      const fallbackEnd = Math.min(bounds.max, loopStartSec + previous.stepSeconds);
+      const loopEndSec =
+        previous.loopEndSec <= loopStartSec ? fallbackEnd : clamp(previous.loopEndSec, bounds.min, bounds.max);
+
       return {
         ...previous,
         loopStartSec,
-        loopEndSec: previous.loopEndSec <= loopStartSec ? loopStartSec + previous.stepSeconds : previous.loopEndSec,
+        loopEndSec: loopEndSec > loopStartSec ? loopEndSec : bounds.max,
       };
     });
   }
 
   function handleMarkLoopEnd(): void {
     setSettings((previous) => {
-      const loopEndSec = timelineTime;
+      const bounds = getTimelineBounds(slotsRef.current);
+      const loopEndSec = clamp(timelineTime, bounds.min, bounds.max);
+      const fallbackStart = Math.max(bounds.min, loopEndSec - previous.stepSeconds);
+      const loopStartSec =
+        previous.loopStartSec >= loopEndSec ? fallbackStart : clamp(previous.loopStartSec, bounds.min, bounds.max);
+
       return {
         ...previous,
-        loopStartSec: previous.loopStartSec >= loopEndSec ? loopEndSec - previous.stepSeconds : previous.loopStartSec,
+        loopStartSec: loopStartSec < loopEndSec ? loopStartSec : bounds.min,
         loopEndSec,
       };
     });
@@ -490,7 +533,7 @@ export function App(): ReactElement {
       isLocked: true,
       layoutMode: "side-by-side",
     }));
-    seekNormalized(0);
+    seekNormalized(getTimelineBounds(slotsRef.current).min);
     await playVideos();
   }
 
