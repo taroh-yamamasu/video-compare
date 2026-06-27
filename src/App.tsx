@@ -518,6 +518,17 @@ export function App(): ReactElement {
     }));
   }
 
+  function handleViewTransformChange(
+    id: SlotId,
+    transform: { scale: number; offsetX: number; offsetY: number },
+  ): void {
+    patchSlot(id, {
+      viewScale: transform.scale,
+      viewOffsetX: transform.offsetX,
+      viewOffsetY: transform.offsetY,
+    });
+  }
+
   function handleToggleLoop(): void {
     const bounds = getTimelineBounds(slotsRef.current);
 
@@ -609,10 +620,12 @@ export function App(): ReactElement {
         slot={slots[id]}
         videoFrameStyle={fitVideoSizes[id]}
         isCompareActive={isFitCompareActive}
+        canAdjustView={!isFitCompareActive}
         onFileSelected={(file) => handleFileSelected(id, file)}
         onSeek={(time) => handleSlotSeek(id, time)}
         onSetSyncPoint={() => handleSetSyncPoint(id)}
         onClear={() => handleClearSlot(id)}
+        onViewTransformChange={(transform) => handleViewTransformChange(id, transform)}
       >
         <VideoPlayer
           slot={slots[id]}
@@ -661,6 +674,7 @@ export function App(): ReactElement {
                   compact
                   slot={slots[id]}
                   isCompareActive={false}
+                  canAdjustView={false}
                   onFileSelected={(file) => handleFileSelected(id, file)}
                   onSeek={(time) => handleSlotSeek(id, time)}
                   onSetSyncPoint={() => handleSetSyncPoint(id)}

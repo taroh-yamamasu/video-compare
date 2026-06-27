@@ -12,6 +12,9 @@ export interface VideoSlotState {
   videoHeight: number;
   currentTime: number;
   syncPointSec: number;
+  viewScale: number;
+  viewOffsetX: number;
+  viewOffsetY: number;
   hasSyncPoint: boolean;
   isReady: boolean;
   isPlaying: boolean;

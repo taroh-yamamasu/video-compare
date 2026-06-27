@@ -265,6 +265,24 @@ input[type="number"] {
   aspect-ratio: 16 / 9;
 }
 
+.slot-panel__video.is-view-adjustable {
+  touch-action: none;
+  cursor: grab;
+}
+
+.slot-panel__video.is-view-adjustable:active {
+  cursor: grabbing;
+}
+
+.slot-panel__video-transform {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100%;
+  transform-origin: center center;
+  will-change: transform;
+}
+
 .video-element,
 .video-placeholder {
   width: 100%;
@@ -518,6 +536,17 @@ input[type="number"] {
 }
 
 .overlay-video--base {
+  position: relative;
+}
+
+.overlay-stage__slot-transform {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.overlay-stage__slot-transform--base {
   position: relative;
 }
 

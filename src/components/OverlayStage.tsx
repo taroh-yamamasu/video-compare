@@ -19,6 +19,10 @@ interface OverlayStageProps {
   onVideoError: (slotId: "left" | "right", message: string) => void;
 }
 
+function getSlotViewTransform(slot: VideoSlotState): string {
+  return `translate(${slot.viewOffsetX}px, ${slot.viewOffsetY}px) scale(${slot.viewScale})`;
+}
+
 export function OverlayStage({
   leftSlot,
   rightSlot,
@@ -35,16 +39,21 @@ export function OverlayStage({
   return (
     <section className="overlay-stage" aria-label="重ね合わせ表示">
       <div className="overlay-stage__canvas">
-        <VideoPlayer
-          slot={leftSlot}
-          videoRef={leftVideoRef}
-          playbackRate={playbackRate}
-          className="video-element overlay-video overlay-video--base"
-          onLoadedMetadata={(metadata) => onLoadedMetadata("left", metadata)}
-          onTimeUpdate={(time) => onTimeUpdate("left", time)}
-          onPlayingChange={(isPlaying) => onPlayingChange("left", isPlaying)}
-          onError={(message) => onVideoError("left", message)}
-        />
+        <div
+          className="overlay-stage__slot-transform overlay-stage__slot-transform--base"
+          style={{ transform: getSlotViewTransform(leftSlot) }}
+        >
+          <VideoPlayer
+            slot={leftSlot}
+            videoRef={leftVideoRef}
+            playbackRate={playbackRate}
+            className="video-element overlay-video overlay-video--base"
+            onLoadedMetadata={(metadata) => onLoadedMetadata("left", metadata)}
+            onTimeUpdate={(time) => onTimeUpdate("left", time)}
+            onPlayingChange={(isPlaying) => onPlayingChange("left", isPlaying)}
+            onError={(message) => onVideoError("left", message)}
+          />
+        </div>
         {rightSlot.objectUrl ? (
           <div
             className="overlay-stage__floating-video"
@@ -53,16 +62,18 @@ export function OverlayStage({
               transform: `translate(${overlay.translateX}px, ${overlay.translateY}px) scale(${overlay.scale})`,
             }}
           >
-            <VideoPlayer
-              slot={rightSlot}
-              videoRef={rightVideoRef}
-              playbackRate={playbackRate}
-              className="video-element overlay-video"
-              onLoadedMetadata={(metadata) => onLoadedMetadata("right", metadata)}
-              onTimeUpdate={(time) => onTimeUpdate("right", time)}
-              onPlayingChange={(isPlaying) => onPlayingChange("right", isPlaying)}
-              onError={(message) => onVideoError("right", message)}
-            />
+            <div className="overlay-stage__slot-transform" style={{ transform: getSlotViewTransform(rightSlot) }}>
+              <VideoPlayer
+                slot={rightSlot}
+                videoRef={rightVideoRef}
+                playbackRate={playbackRate}
+                className="video-element overlay-video"
+                onLoadedMetadata={(metadata) => onLoadedMetadata("right", metadata)}
+                onTimeUpdate={(time) => onTimeUpdate("right", time)}
+                onPlayingChange={(isPlaying) => onPlayingChange("right", isPlaying)}
+                onError={(message) => onVideoError("right", message)}
+              />
+            </div>
           </div>
         ) : null}
       </div>
