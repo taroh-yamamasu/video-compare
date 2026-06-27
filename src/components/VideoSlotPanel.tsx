@@ -1,6 +1,6 @@
 import { CircleDot, Pause, Play, SkipBack, SkipForward, Trash2, Upload, Video } from "lucide-react";
 import { useRef, useState } from "react";
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import type { VideoSlotState } from "../types";
 import { clamp, formatTime } from "../utils/time";
 
@@ -8,6 +8,7 @@ interface VideoSlotPanelProps {
   slot: VideoSlotState;
   compact?: boolean;
   children?: ReactNode;
+  videoFrameStyle?: CSSProperties;
   isLocked: boolean;
   canUseIndividualControls: boolean;
   onFileSelected: (file: File) => void;
@@ -22,6 +23,7 @@ export function VideoSlotPanel({
   slot,
   compact = false,
   children,
+  videoFrameStyle,
   isLocked,
   canUseIndividualControls,
   onFileSelected,
@@ -94,7 +96,11 @@ export function VideoSlotPanel({
         写真から選ぶ
       </button>
 
-      {!compact ? <div className="slot-panel__video">{children}</div> : null}
+      {!compact ? (
+        <div className="slot-panel__video" style={videoFrameStyle}>
+          {children}
+        </div>
+      ) : null}
 
       {slot.error ? <p className="slot-error">{slot.error}</p> : null}
 

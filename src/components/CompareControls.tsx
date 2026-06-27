@@ -1,10 +1,12 @@
-import { Pause, Play, Repeat, SkipBack, SkipForward } from "lucide-react";
+import { Maximize2, Pause, Play, Repeat, RotateCcw, SkipBack, SkipForward } from "lucide-react";
 import type { ReactElement } from "react";
 import type { CompareSettings } from "../types";
 import { clamp, formatTime } from "../utils/time";
 
 interface CompareControlsProps {
   settings: CompareSettings;
+  isFitCompareActive: boolean;
+  canStartFitCompare: boolean;
   timelineTime: number;
   timelineMin: number;
   timelineMax: number;
@@ -18,12 +20,16 @@ interface CompareControlsProps {
   onToggleLoop: () => void;
   onMarkLoopStart: () => void;
   onMarkLoopEnd: () => void;
+  onStartFitCompare: () => void;
+  onExitFitCompare: () => void;
 }
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25] as const;
 
 export function CompareControls({
   settings,
+  isFitCompareActive,
+  canStartFitCompare,
   timelineTime,
   timelineMin,
   timelineMax,
@@ -37,6 +43,8 @@ export function CompareControls({
   onToggleLoop,
   onMarkLoopStart,
   onMarkLoopEnd,
+  onStartFitCompare,
+  onExitFitCompare,
 }: CompareControlsProps): ReactElement {
   const sliderMin = Number.isFinite(timelineMin) ? timelineMin : 0;
   const sliderMax = Number.isFinite(timelineMax) && timelineMax > sliderMin ? timelineMax : sliderMin + 1;
@@ -74,6 +82,19 @@ export function CompareControls({
       </div>
 
       <div className="control-grid">
+        <div className="fit-compare-controls">
+          {isFitCompareActive ? (
+            <button type="button" onClick={onExitFitCompare}>
+              <RotateCcw size={17} aria-hidden="true" />
+              編集に戻る
+            </button>
+          ) : (
+            <button type="button" onClick={onStartFitCompare} disabled={!canStartFitCompare}>
+              <Maximize2 size={17} aria-hidden="true" />
+              比較開始
+            </button>
+          )}
+        </div>
         <label className="field">
           <span>速度</span>
           <select

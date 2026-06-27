@@ -7,7 +7,7 @@ interface VideoPlayerProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   playbackRate: number;
   className?: string;
-  onLoadedMetadata: (duration: number) => void;
+  onLoadedMetadata: (metadata: { duration: number; videoWidth: number; videoHeight: number }) => void;
   onTimeUpdate: (time: number) => void;
   onPlayingChange: (isPlaying: boolean) => void;
   onError: (message: string) => void;
@@ -51,7 +51,11 @@ export function VideoPlayer({
         if (slot.currentTime > 0 && slot.currentTime <= video.duration) {
           video.currentTime = slot.currentTime;
         }
-        onLoadedMetadata(video.duration);
+        onLoadedMetadata({
+          duration: video.duration,
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+        });
       }}
       onTimeUpdate={(event) => onTimeUpdate(event.currentTarget.currentTime)}
       onPlay={() => onPlayingChange(true)}

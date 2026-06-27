@@ -10,7 +10,10 @@ interface OverlayStageProps {
   playbackRate: number;
   overlay: OverlaySettings;
   onOverlayChange: (overlay: OverlaySettings) => void;
-  onLoadedMetadata: (slotId: "left" | "right", duration: number) => void;
+  onLoadedMetadata: (
+    slotId: "left" | "right",
+    metadata: { duration: number; videoWidth: number; videoHeight: number },
+  ) => void;
   onTimeUpdate: (slotId: "left" | "right", time: number) => void;
   onPlayingChange: (slotId: "left" | "right", isPlaying: boolean) => void;
   onVideoError: (slotId: "left" | "right", message: string) => void;
@@ -37,7 +40,7 @@ export function OverlayStage({
           videoRef={leftVideoRef}
           playbackRate={playbackRate}
           className="video-element overlay-video overlay-video--base"
-          onLoadedMetadata={(duration) => onLoadedMetadata("left", duration)}
+          onLoadedMetadata={(metadata) => onLoadedMetadata("left", metadata)}
           onTimeUpdate={(time) => onTimeUpdate("left", time)}
           onPlayingChange={(isPlaying) => onPlayingChange("left", isPlaying)}
           onError={(message) => onVideoError("left", message)}
@@ -55,7 +58,7 @@ export function OverlayStage({
               videoRef={rightVideoRef}
               playbackRate={playbackRate}
               className="video-element overlay-video"
-              onLoadedMetadata={(duration) => onLoadedMetadata("right", duration)}
+              onLoadedMetadata={(metadata) => onLoadedMetadata("right", metadata)}
               onTimeUpdate={(time) => onTimeUpdate("right", time)}
               onPlayingChange={(isPlaying) => onPlayingChange("right", isPlaying)}
               onError={(message) => onVideoError("right", message)}

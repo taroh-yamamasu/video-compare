@@ -8,8 +8,11 @@ export interface VideoSlotState {
   fileName: string | null;
   objectUrl: string | null;
   duration: number;
+  videoWidth: number;
+  videoHeight: number;
   currentTime: number;
   syncPointSec: number;
+  hasSyncPoint: boolean;
   isReady: boolean;
   isPlaying: boolean;
   error: string | null;

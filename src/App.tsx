@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { CompareControls } from "./components/CompareControls";
 import { ModeToolbar } from "./components/ModeToolbar";
 import { OverlayStage } from "./components/OverlayStage";
@@ -11,6 +11,8 @@ import type { CompareSettings, LayoutMode, OverlaySettings, SlotId, VideoSlotSta
 import { clamp, isLikelyVideoFile } from "./utils/time";
 
 type SlotsState = Record<SlotId, VideoSlotState>;
+type FitVideoSizes = Record<SlotId, CSSProperties | undefined>;
+type ViewportSize = { width: number; height: number };
 
 const SLOT_IDS: SlotId[] = ["left", "right"];
 
@@ -63,6 +65,25 @@ function areBothReady(slots: SlotsState): boolean {
   return slots.left.isReady && slots.right.isReady;
 }
 
+function getViewportSize(): ViewportSize {
+  if (typeof window === "undefined") {
+    return { width: 1440, height: 900 };
+  }
+
+  return {
+    width: window.visualViewport?.width ?? window.innerWidth,
+    height: window.visualViewport?.height ?? window.innerHeight,
+  };
+}
+
+function getSlotAspect(slot: VideoSlotState): number {
+  if (slot.videoWidth > 0 && slot.videoHeight > 0) {
+    return slot.videoWidth / slot.videoHeight;
+  }
+
+  return 16 / 9;
+}
+
 export function App(): ReactElement {
   const leftVideoRef = useRef<HTMLVideoElement | null>(null);
   const rightVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -75,13 +96,35 @@ export function App(): ReactElement {
   const [settings, setSettings] = useState<CompareSettings>(() => getInitialCompareSettings());
   const [overlay, setOverlay] = useState<OverlaySettings>(() => getInitialOverlaySettings());
   const [timelineTime, setTimelineTime] = useState(0);
+  const [isFitCompareActive, setIsFitCompareActive] = useState(false);
+  const [viewportSize, setViewportSize] = useState<ViewportSize>(() => getViewportSize());
 
   const slotsRef = useRef(slots);
   const settingsRef = useRef(settings);
 
   const bothReady = areBothReady(slots);
   const anyPlaying = slots.left.isPlaying || slots.right.isPlaying;
+  const canStartFitCompare = bothReady && slots.left.hasSyncPoint && slots.right.hasSyncPoint;
   const timelineBounds = useMemo(() => getTimelineBounds(slots), [slots]);
+  const fitVideoSizes = useMemo<FitVideoSizes>(() => {
+    if (!isFitCompareActive || !bothReady) {
+      return { left: undefined, right: undefined };
+    }
+
+    const leftAspect = getSlotAspect(slots.left);
+    const rightAspect = getSlotAspect(slots.right);
+    const horizontalPadding = viewportSize.width <= 760 ? 0 : 44;
+    const availableWidth = Math.max(280, Math.min(1440, viewportSize.width - horizontalPadding));
+    const maxHeight = Math.max(220, viewportSize.height * 0.68);
+    const height = Math.min(availableWidth / (leftAspect + rightAspect), maxHeight);
+    const leftWidth = height * leftAspect;
+    const rightWidth = height * rightAspect;
+
+    return {
+      left: { width: `${leftWidth}px`, height: `${height}px` },
+      right: { width: `${rightWidth}px`, height: `${height}px` },
+    };
+  }, [bothReady, isFitCompareActive, slots.left, slots.right, viewportSize.height, viewportSize.width]);
 
   useEffect(() => {
     slotsRef.current = slots;
@@ -107,6 +150,20 @@ export function App(): ReactElement {
         URL.revokeObjectURL(objectUrl);
       }
       objectUrlsRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleResize(): void {
+      setViewportSize(getViewportSize());
+    }
+
+    window.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -247,6 +304,7 @@ export function App(): ReactElement {
   function handleFileSelected(id: SlotId, file: File): void {
     const existingUrl = slotsRef.current[id].objectUrl;
     getVideo(id)?.pause();
+    setIsFitCompareActive(false);
 
     if (!isLikelyVideoFile(file)) {
       patchSlot(id, {
@@ -276,6 +334,7 @@ export function App(): ReactElement {
   function handleClearSlot(id: SlotId): void {
     const existingUrl = slotsRef.current[id].objectUrl;
     getVideo(id)?.pause();
+    setIsFitCompareActive(false);
 
     if (existingUrl) {
       URL.revokeObjectURL(existingUrl);
@@ -286,11 +345,18 @@ export function App(): ReactElement {
     setTimelineTime(0);
   }
 
-  function handleLoadedMetadata(id: SlotId, duration: number): void {
+  function handleLoadedMetadata(
+    id: SlotId,
+    metadata: { duration: number; videoWidth: number; videoHeight: number },
+  ): void {
+    const isReady = Number.isFinite(metadata.duration) && metadata.duration > 0;
+
     patchSlot(id, {
-      duration,
-      isReady: Number.isFinite(duration) && duration > 0,
-      error: Number.isFinite(duration) && duration > 0 ? null : "動画の長さを読み取れませんでした。",
+      duration: metadata.duration,
+      videoWidth: metadata.videoWidth,
+      videoHeight: metadata.videoHeight,
+      isReady,
+      error: isReady ? null : "動画の長さを読み取れませんでした。",
     });
   }
 
@@ -331,7 +397,7 @@ export function App(): ReactElement {
   function handleSetSyncPoint(id: SlotId): void {
     const video = getVideo(id);
     const currentTime = video?.currentTime ?? slotsRef.current[id].currentTime;
-    patchSlot(id, { syncPointSec: currentTime });
+    patchSlot(id, { syncPointSec: currentTime, hasSyncPoint: true });
     setTimelineTime(0);
   }
 
@@ -428,10 +494,29 @@ export function App(): ReactElement {
 
   function handleLayoutChange(layoutMode: LayoutMode): void {
     pauseVideos();
+    setIsFitCompareActive(false);
     setSettings((previous) => ({
       ...previous,
       layoutMode,
     }));
+  }
+
+  function handleStartFitCompare(): void {
+    if (!canStartFitCompare) {
+      return;
+    }
+
+    pauseVideos();
+    setIsFitCompareActive(true);
+    setSettings((previous) => ({
+      ...previous,
+      layoutMode: "side-by-side",
+    }));
+    seekNormalized(0);
+  }
+
+  function handleExitFitCompare(): void {
+    setIsFitCompareActive(false);
   }
 
   function renderVideoSlot(id: SlotId): ReactElement {
@@ -441,6 +526,7 @@ export function App(): ReactElement {
       <VideoSlotPanel
         key={id}
         slot={slots[id]}
+        videoFrameStyle={fitVideoSizes[id]}
         isLocked={settings.isLocked}
         canUseIndividualControls={!settings.isLocked}
         onFileSelected={(file) => handleFileSelected(id, file)}
@@ -455,7 +541,7 @@ export function App(): ReactElement {
           videoRef={videoRef}
           playbackRate={settings.playbackRate}
           className="video-element"
-          onLoadedMetadata={(duration) => handleLoadedMetadata(id, duration)}
+          onLoadedMetadata={(metadata) => handleLoadedMetadata(id, metadata)}
           onTimeUpdate={(time) => handleTimeUpdate(id, time)}
           onPlayingChange={(isPlaying) => handlePlayingChange(id, isPlaying)}
           onError={(message) => handleVideoError(id, message)}
@@ -465,7 +551,7 @@ export function App(): ReactElement {
   }
 
   return (
-    <div className={`app-shell app-shell--${settings.layoutMode}`}>
+    <div className={`app-shell app-shell--${settings.layoutMode} ${isFitCompareActive ? "is-fit-compare" : ""}`}>
       <header className="app-header">
         <div>
           <h1>Video Compare</h1>
@@ -514,6 +600,8 @@ export function App(): ReactElement {
 
         <CompareControls
           settings={settings}
+          isFitCompareActive={isFitCompareActive}
+          canStartFitCompare={canStartFitCompare}
           timelineTime={timelineTime}
           timelineMin={timelineBounds.min}
           timelineMax={timelineBounds.max}
@@ -527,6 +615,8 @@ export function App(): ReactElement {
           onToggleLoop={handleToggleLoop}
           onMarkLoopStart={handleMarkLoopStart}
           onMarkLoopEnd={handleMarkLoopEnd}
+          onStartFitCompare={handleStartFitCompare}
+          onExitFitCompare={handleExitFitCompare}
         />
       </main>
     </div>
