@@ -1082,10 +1082,6 @@ input[type="number"] {
     padding: 6px;
   }
 
-  .slot-panel.has-video .slot-panel__actions--sync {
-    display: none;
-  }
-
   .compare-controls {
     border-radius: 0;
     border-top: 0;
