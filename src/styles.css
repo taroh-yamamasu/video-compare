@@ -535,37 +535,51 @@ input[type="number"] {
   inset: 0;
 }
 
-.overlay-video--base {
-  position: relative;
-}
-
+.overlay-stage__layer,
 .overlay-stage__slot-transform {
   position: absolute;
   inset: 0;
   transform-origin: center center;
+}
+
+.overlay-stage__layer {
+  will-change: transform, opacity;
+}
+
+.overlay-stage__slot-transform {
   will-change: transform;
 }
 
-.overlay-stage__slot-transform--base {
-  position: relative;
-}
-
-.overlay-stage__floating-video {
-  position: absolute;
-  inset: 0;
-  transform-origin: center center;
-  will-change: transform, opacity;
+.overlay-stage__layer--editing {
+  pointer-events: none;
 }
 
 .overlay-controls {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: minmax(220px, 1.25fr) repeat(4, minmax(120px, 1fr));
   gap: 12px;
 }
 
-.overlay-controls label {
+.overlay-controls label,
+.overlay-target-control {
   display: grid;
   gap: 6px;
+}
+
+.overlay-target-control > span,
+.overlay-controls label > span {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.overlay-target-control .segmented-control {
+  width: 100%;
+  box-shadow: none;
+}
+
+.overlay-target-control .segmented-control button {
+  flex: 1;
 }
 
 .overlay-slot-controls {

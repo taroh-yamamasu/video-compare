@@ -1,4 +1,4 @@
-import type { CompareSettings, OverlaySettings, SlotId, VideoSlotState } from "./types";
+import type { CompareSettings, OverlaySettings, OverlayTransform, SlotId, VideoSlotState } from "./types";
 
 export const DEFAULT_COMPARE_SETTINGS: CompareSettings = {
   isLocked: true,
@@ -10,11 +10,19 @@ export const DEFAULT_COMPARE_SETTINGS: CompareSettings = {
   stepSeconds: 1 / 30,
 };
 
-export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
+const DEFAULT_OVERLAY_TRANSFORM: OverlayTransform = {
   opacity: 0.5,
   translateX: 0,
   translateY: 0,
   scale: 1,
+};
+
+export const DEFAULT_OVERLAY_SETTINGS: OverlaySettings = {
+  editingSlot: "right",
+  transforms: {
+    left: { ...DEFAULT_OVERLAY_TRANSFORM },
+    right: { ...DEFAULT_OVERLAY_TRANSFORM },
+  },
 };
 
 export function createInitialSlot(id: SlotId): VideoSlotState {

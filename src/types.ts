@@ -31,11 +31,16 @@ export interface CompareSettings {
   stepSeconds: number;
 }
 
-export interface OverlaySettings {
+export interface OverlayTransform {
   opacity: number;
   translateX: number;
   translateY: number;
   scale: number;
+}
+
+export interface OverlaySettings {
+  editingSlot: SlotId;
+  transforms: Record<SlotId, OverlayTransform>;
 }
 
 export interface PersistedSettings {

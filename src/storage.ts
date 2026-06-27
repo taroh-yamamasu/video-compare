@@ -1,7 +1,47 @@
-import type { CompareSettings, OverlaySettings, PersistedSettings } from "./types";
+import type { CompareSettings, OverlaySettings, OverlayTransform, PersistedSettings, SlotId } from "./types";
 
 const STORAGE_KEY = "video-compare-ui-settings";
-const SETTINGS_VERSION = 2;
+const SETTINGS_VERSION = 3;
+
+type LegacyOverlaySettings = Partial<OverlaySettings> & Partial<OverlayTransform>;
+
+function isSlotId(value: unknown): value is SlotId {
+  return value === "left" || value === "right";
+}
+
+function readFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeOverlayTransform(
+  source: Partial<OverlayTransform> | undefined,
+  defaults: OverlayTransform,
+): OverlayTransform {
+  const opacity = readFiniteNumber(source?.opacity, defaults.opacity);
+  const scale = readFiniteNumber(source?.scale, defaults.scale);
+
+  return {
+    opacity: Math.min(1, Math.max(0, opacity)),
+    translateX: readFiniteNumber(source?.translateX, defaults.translateX),
+    translateY: readFiniteNumber(source?.translateY, defaults.translateY),
+    scale: Math.min(4, Math.max(0.1, scale)),
+  };
+}
+
+function normalizeOverlaySettings(
+  source: LegacyOverlaySettings | undefined,
+  defaults: OverlaySettings,
+): OverlaySettings {
+  const transforms = source?.transforms as Partial<Record<SlotId, Partial<OverlayTransform>>> | undefined;
+
+  return {
+    editingSlot: isSlotId(source?.editingSlot) ? source.editingSlot : defaults.editingSlot,
+    transforms: {
+      left: normalizeOverlayTransform(transforms?.left, defaults.transforms.left),
+      right: normalizeOverlayTransform(transforms?.right ?? source, defaults.transforms.right),
+    },
+  };
+}
 
 export function loadPersistedSettings(
   compareDefaults: CompareSettings,
@@ -18,7 +58,7 @@ export function loadPersistedSettings(
     }
 
     const parsed = JSON.parse(raw) as Partial<PersistedSettings>;
-    const isCurrentVersion = parsed.version === SETTINGS_VERSION;
+    const preservesPlaybackRate = typeof parsed.version === "number" && parsed.version >= 2;
 
     return {
       version: SETTINGS_VERSION,
@@ -28,22 +68,14 @@ export function loadPersistedSettings(
           ? parsed.layoutMode
           : compareDefaults.layoutMode,
       playbackRate:
-        isCurrentVersion && typeof parsed.playbackRate === "number" && parsed.playbackRate > 0
+        preservesPlaybackRate && typeof parsed.playbackRate === "number" && parsed.playbackRate > 0
           ? parsed.playbackRate
           : compareDefaults.playbackRate,
       stepSeconds:
         typeof parsed.stepSeconds === "number" && parsed.stepSeconds > 0
           ? parsed.stepSeconds
           : compareDefaults.stepSeconds,
-      overlay: {
-        opacity:
-          typeof parsed.overlay?.opacity === "number" ? parsed.overlay.opacity : overlayDefaults.opacity,
-        translateX:
-          typeof parsed.overlay?.translateX === "number" ? parsed.overlay.translateX : overlayDefaults.translateX,
-        translateY:
-          typeof parsed.overlay?.translateY === "number" ? parsed.overlay.translateY : overlayDefaults.translateY,
-        scale: typeof parsed.overlay?.scale === "number" ? parsed.overlay.scale : overlayDefaults.scale,
-      },
+      overlay: normalizeOverlaySettings(parsed.overlay as LegacyOverlaySettings | undefined, overlayDefaults),
     };
   } catch {
     return toPersistedSettings(compareDefaults, overlayDefaults);
