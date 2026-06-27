@@ -401,29 +401,6 @@ export function App(): ReactElement {
     setTimelineTime(0);
   }
 
-  function handleSlotStep(id: SlotId, direction: number): void {
-    if (!slotsRef.current[id].isReady) {
-      return;
-    }
-
-    setActualTime(id, slotsRef.current[id].currentTime + direction * settingsRef.current.stepSeconds);
-  }
-
-  async function handleToggleSoloPlay(id: SlotId): Promise<void> {
-    const video = getVideo(id);
-    if (!video || !slotsRef.current[id].isReady) {
-      return;
-    }
-
-    if (!video.paused) {
-      video.pause();
-      return;
-    }
-
-    video.playbackRate = settingsRef.current.playbackRate;
-    await video.play().catch(() => undefined);
-  }
-
   async function handleTogglePlayback(): Promise<void> {
     if (anyPlaying) {
       pauseVideos();
@@ -501,7 +478,7 @@ export function App(): ReactElement {
     }));
   }
 
-  function handleStartFitCompare(): void {
+  async function handleStartFitCompare(): Promise<void> {
     if (!canStartFitCompare) {
       return;
     }
@@ -510,12 +487,15 @@ export function App(): ReactElement {
     setIsFitCompareActive(true);
     setSettings((previous) => ({
       ...previous,
+      isLocked: true,
       layoutMode: "side-by-side",
     }));
     seekNormalized(0);
+    await playVideos();
   }
 
   function handleExitFitCompare(): void {
+    pauseVideos();
     setIsFitCompareActive(false);
   }
 
@@ -527,14 +507,11 @@ export function App(): ReactElement {
         key={id}
         slot={slots[id]}
         videoFrameStyle={fitVideoSizes[id]}
-        isLocked={settings.isLocked}
-        canUseIndividualControls={!settings.isLocked}
+        isCompareActive={isFitCompareActive}
         onFileSelected={(file) => handleFileSelected(id, file)}
         onSeek={(time) => handleSlotSeek(id, time)}
         onSetSyncPoint={() => handleSetSyncPoint(id)}
         onClear={() => handleClearSlot(id)}
-        onStep={(direction) => handleSlotStep(id, direction)}
-        onToggleSoloPlay={() => void handleToggleSoloPlay(id)}
       >
         <VideoPlayer
           slot={slots[id]}
@@ -582,14 +559,11 @@ export function App(): ReactElement {
                   key={id}
                   compact
                   slot={slots[id]}
-                  isLocked={settings.isLocked}
-                  canUseIndividualControls={!settings.isLocked}
+                  isCompareActive={false}
                   onFileSelected={(file) => handleFileSelected(id, file)}
                   onSeek={(time) => handleSlotSeek(id, time)}
                   onSetSyncPoint={() => handleSetSyncPoint(id)}
                   onClear={() => handleClearSlot(id)}
-                  onStep={(direction) => handleSlotStep(id, direction)}
-                  onToggleSoloPlay={() => void handleToggleSoloPlay(id)}
                 />
               ))}
             </div>
@@ -615,7 +589,7 @@ export function App(): ReactElement {
           onToggleLoop={handleToggleLoop}
           onMarkLoopStart={handleMarkLoopStart}
           onMarkLoopEnd={handleMarkLoopEnd}
-          onStartFitCompare={handleStartFitCompare}
+          onStartFitCompare={() => void handleStartFitCompare()}
           onExitFitCompare={handleExitFitCompare}
         />
       </main>

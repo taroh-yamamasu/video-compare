@@ -1,6 +1,7 @@
 import type { CompareSettings, OverlaySettings, PersistedSettings } from "./types";
 
 const STORAGE_KEY = "video-compare-ui-settings";
+const SETTINGS_VERSION = 2;
 
 export function loadPersistedSettings(
   compareDefaults: CompareSettings,
@@ -17,15 +18,17 @@ export function loadPersistedSettings(
     }
 
     const parsed = JSON.parse(raw) as Partial<PersistedSettings>;
+    const isCurrentVersion = parsed.version === SETTINGS_VERSION;
 
     return {
+      version: SETTINGS_VERSION,
       isLocked: typeof parsed.isLocked === "boolean" ? parsed.isLocked : compareDefaults.isLocked,
       layoutMode:
         parsed.layoutMode === "side-by-side" || parsed.layoutMode === "stacked" || parsed.layoutMode === "overlay"
           ? parsed.layoutMode
           : compareDefaults.layoutMode,
       playbackRate:
-        typeof parsed.playbackRate === "number" && parsed.playbackRate > 0
+        isCurrentVersion && typeof parsed.playbackRate === "number" && parsed.playbackRate > 0
           ? parsed.playbackRate
           : compareDefaults.playbackRate,
       stepSeconds:
@@ -60,6 +63,7 @@ export function toPersistedSettings(
   overlay: OverlaySettings,
 ): PersistedSettings {
   return {
+    version: SETTINGS_VERSION,
     isLocked: compare.isLocked,
     layoutMode: compare.layoutMode,
     playbackRate: compare.playbackRate,

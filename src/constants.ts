@@ -3,7 +3,7 @@ import type { CompareSettings, OverlaySettings, SlotId, VideoSlotState } from ".
 export const DEFAULT_COMPARE_SETTINGS: CompareSettings = {
   isLocked: true,
   layoutMode: "side-by-side",
-  playbackRate: 0.5,
+  playbackRate: 1,
   loopEnabled: false,
   loopStartSec: 0,
   loopEndSec: 3,

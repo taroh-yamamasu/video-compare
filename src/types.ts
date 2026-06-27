@@ -36,6 +36,7 @@ export interface OverlaySettings {
 }
 
 export interface PersistedSettings {
+  version: number;
   isLocked: boolean;
   layoutMode: LayoutMode;
   playbackRate: number;
