@@ -453,6 +453,85 @@ input[type="number"] {
   gap: 16px;
 }
 
+@media (min-width: 1041px) {
+  .app-shell--side-by-side .app-main {
+    gap: 0;
+  }
+
+  .app-shell--side-by-side .video-grid--side-by-side {
+    gap: 0;
+  }
+
+  .app-shell--side-by-side .video-grid--side-by-side .slot-panel {
+    position: relative;
+    gap: 0;
+    border-radius: 0;
+    border-right-width: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .app-shell--side-by-side .video-grid--side-by-side .slot-panel:first-child {
+    border-top-left-radius: 8px;
+  }
+
+  .app-shell--side-by-side .video-grid--side-by-side .slot-panel:last-child {
+    border-top-right-radius: 8px;
+    border-right-width: 1px;
+  }
+
+  .app-shell--side-by-side .video-grid--side-by-side .slot-panel:not(.has-video) {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .app-shell--side-by-side .slot-panel.has-video .slot-panel__header {
+    display: none;
+  }
+
+  .app-shell--side-by-side .slot-panel.has-video .select-video-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    width: auto;
+    min-height: 34px;
+    border-color: rgba(255, 255, 255, 0.68);
+    background: rgba(17, 24, 32, 0.64);
+    color: #fff;
+    font-size: 0.82rem;
+    padding: 0 12px;
+    backdrop-filter: blur(8px);
+  }
+
+  .app-shell--side-by-side .slot-panel.has-video .select-video-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .app-shell--side-by-side .slot-panel.has-video .slot-panel__video {
+    border-radius: 0;
+  }
+
+  .app-shell--side-by-side .video-grid--side-by-side .slot-panel:first-child .slot-panel__video {
+    border-top-left-radius: 8px;
+  }
+
+  .app-shell--side-by-side .video-grid--side-by-side .slot-panel:last-child .slot-panel__video {
+    border-top-right-radius: 8px;
+  }
+
+  .app-shell--side-by-side .slot-panel.has-video .slot-panel__controls {
+    padding: 10px 12px 12px;
+  }
+
+  .app-shell--side-by-side .compare-controls {
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    box-shadow: none;
+  }
+}
+
 @media (max-width: 1040px) {
   .video-grid--side-by-side {
     grid-template-columns: minmax(0, 1fr);
