@@ -130,7 +130,7 @@ export function App(): ReactElement {
   const canStartFitCompare = bothReady && slots.left.hasSyncPoint && slots.right.hasSyncPoint;
   const timelineBounds = useMemo(() => getTimelineBounds(slots), [slots]);
   const fitVideoSizes = useMemo<FitVideoSizes>(() => {
-    if (!isFitCompareActive || !bothReady) {
+    if (!isFitCompareActive || !bothReady || settings.layoutMode === "overlay") {
       return { left: undefined, right: undefined };
     }
 
@@ -139,6 +139,18 @@ export function App(): ReactElement {
     const horizontalPadding = viewportSize.width <= 760 ? 0 : 44;
     const availableWidth = Math.max(280, Math.min(1440, viewportSize.width - horizontalPadding));
     const maxHeight = Math.max(220, viewportSize.height * 0.68);
+
+    if (settings.layoutMode === "stacked") {
+      const height = Math.min(availableWidth / Math.max(leftAspect, rightAspect), maxHeight / 2);
+      const leftWidth = height * leftAspect;
+      const rightWidth = height * rightAspect;
+
+      return {
+        left: { width: `${leftWidth}px`, height: `${height}px` },
+        right: { width: `${rightWidth}px`, height: `${height}px` },
+      };
+    }
+
     const height = Math.min(availableWidth / (leftAspect + rightAspect), maxHeight);
     const leftWidth = height * leftAspect;
     const rightWidth = height * rightAspect;
@@ -147,7 +159,7 @@ export function App(): ReactElement {
       left: { width: `${leftWidth}px`, height: `${height}px` },
       right: { width: `${rightWidth}px`, height: `${height}px` },
     };
-  }, [bothReady, isFitCompareActive, slots.left, slots.right, viewportSize.height, viewportSize.width]);
+  }, [bothReady, isFitCompareActive, settings.layoutMode, slots.left, slots.right, viewportSize.height, viewportSize.width]);
 
   useEffect(() => {
     slotsRef.current = slots;
@@ -293,6 +305,35 @@ export function App(): ReactElement {
     patchSlot(id, { currentTime: nextTime });
   }
 
+  function seekToSyncPointPreview(sourceSlots = slotsRef.current): void {
+    let nextSlots = sourceSlots;
+
+    for (const id of SLOT_IDS) {
+      const slot = sourceSlots[id];
+      if (!slot.isReady) {
+        continue;
+      }
+
+      const previewTime = clamp(slot.syncPointSec, 0, slot.duration || 0);
+      const video = getVideo(id);
+      if (video) {
+        video.currentTime = previewTime;
+      }
+
+      nextSlots = {
+        ...nextSlots,
+        [id]: {
+          ...nextSlots[id],
+          currentTime: previewTime,
+        },
+      };
+    }
+
+    setSlots(nextSlots);
+    slotsRef.current = nextSlots;
+    setTimelineTime(0);
+  }
+
   function seekNormalized(normalizedTime: number): void {
     const currentSlots = slotsRef.current;
     const bounds = getTimelineBounds(currentSlots);
@@ -427,8 +468,22 @@ export function App(): ReactElement {
   function handleSetSyncPoint(id: SlotId): void {
     const video = getVideo(id);
     const currentTime = video?.currentTime ?? slotsRef.current[id].currentTime;
-    patchSlot(id, { syncPointSec: currentTime, hasSyncPoint: true });
+    const nextSlots = {
+      ...slotsRef.current,
+      [id]: {
+        ...slotsRef.current[id],
+        syncPointSec: currentTime,
+        hasSyncPoint: true,
+      },
+    };
+
+    setSlots(nextSlots);
+    slotsRef.current = nextSlots;
     setTimelineTime(0);
+
+    if (settingsRef.current.layoutMode === "overlay" && areBothReady(nextSlots)) {
+      seekToSyncPointPreview(nextSlots);
+    }
   }
 
   async function handleTogglePlayback(): Promise<void> {
@@ -519,6 +574,10 @@ export function App(): ReactElement {
       ...previous,
       layoutMode,
     }));
+
+    if (layoutMode === "overlay" && areBothReady(slotsRef.current)) {
+      seekToSyncPointPreview();
+    }
   }
 
   async function handleStartFitCompare(): Promise<void> {
@@ -531,7 +590,6 @@ export function App(): ReactElement {
     setSettings((previous) => ({
       ...previous,
       isLocked: true,
-      layoutMode: "side-by-side",
     }));
     seekNormalized(getTimelineBounds(slotsRef.current).min);
     await playVideos();

@@ -561,6 +561,14 @@ input[type="number"] {
   overflow-x: hidden;
 }
 
+.is-fit-compare .video-grid--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  overflow-x: hidden;
+}
+
 .is-fit-compare .video-grid--side-by-side .slot-panel {
   position: relative;
   flex: 0 0 auto;
@@ -573,8 +581,24 @@ input[type="number"] {
   padding: 0;
 }
 
+.is-fit-compare .video-grid--stacked .slot-panel {
+  position: relative;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: none;
+  gap: 0;
+  border-radius: 0;
+  border-bottom-width: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
 .is-fit-compare .video-grid--side-by-side .slot-panel:last-child {
   border-right-width: 1px;
+}
+
+.is-fit-compare .video-grid--stacked .slot-panel:last-child {
+  border-bottom-width: 1px;
 }
 
 .is-fit-compare .slot-panel.has-video .slot-panel__header {
@@ -616,6 +640,21 @@ input[type="number"] {
   border-top: 0;
   border-radius: 0 0 8px 8px;
   box-shadow: none;
+}
+
+.is-fit-compare .overlay-stage {
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.is-fit-compare .overlay-stage__canvas {
+  border-radius: 0;
+}
+
+.is-fit-compare .overlay-controls,
+.is-fit-compare .overlay-slot-controls {
+  display: none;
 }
 
 @media (min-width: 1041px) {
