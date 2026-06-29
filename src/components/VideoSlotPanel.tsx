@@ -1,4 +1,4 @@
-import { CircleDot, Trash2, Upload, Video } from "lucide-react";
+import { CheckCircle2, CircleDot, Minus, Plus, RotateCcw, Trash2, Upload, Video } from "lucide-react";
 import { useRef, useState } from "react";
 import type { CSSProperties, PointerEvent, ReactElement, ReactNode } from "react";
 import type { VideoSlotState } from "../types";
@@ -6,6 +6,7 @@ import { clamp, formatTime } from "../utils/time";
 
 const MIN_VIEW_SCALE = 1;
 const MAX_VIEW_SCALE = 4;
+const VIEW_SCALE_STEP = 0.25;
 
 interface VideoSlotPanelProps {
   slot: VideoSlotState;
@@ -84,6 +85,18 @@ export function VideoSlotPanel({
     });
   }
 
+  function handleZoomIn(): void {
+    updateTransform(slot.viewScale + VIEW_SCALE_STEP, slot.viewOffsetX, slot.viewOffsetY);
+  }
+
+  function handleZoomOut(): void {
+    updateTransform(slot.viewScale - VIEW_SCALE_STEP, slot.viewOffsetX, slot.viewOffsetY);
+  }
+
+  function handleResetView(): void {
+    updateTransform(MIN_VIEW_SCALE, 0, 0);
+  }
+
   function handlePointerDown(event: PointerEvent<HTMLDivElement>): void {
     if (!canAdjustView || !slot.objectUrl) {
       return;
@@ -155,6 +168,7 @@ export function VideoSlotPanel({
   const transformStyle: CSSProperties = {
     transform: `translate(${slot.viewOffsetX}px, ${slot.viewOffsetY}px) scale(${slot.viewScale})`,
   };
+  const syncStatusText = slot.hasSyncPoint ? formatTime(slot.syncPointSec) : "未設定";
 
   return (
     <section
@@ -221,6 +235,63 @@ export function VideoSlotPanel({
           <div className="slot-panel__video-transform" style={transformStyle}>
             {children}
           </div>
+          {!isCompareActive && slot.objectUrl ? (
+            <div
+              className={`slot-panel__video-sync-badge ${slot.hasSyncPoint ? "is-set" : "is-unset"}`}
+              aria-label={`${slot.label}の基準点は${syncStatusText}`}
+            >
+              {slot.hasSyncPoint ? (
+                <CheckCircle2 size={16} aria-hidden="true" />
+              ) : (
+                <CircleDot size={16} aria-hidden="true" />
+              )}
+              <span>基準点</span>
+              <strong>{syncStatusText}</strong>
+            </div>
+          ) : null}
+          {canAdjustView && slot.objectUrl ? (
+            <div
+              className="view-zoom-controls"
+              aria-label={`${slot.label}の表示調整`}
+              onPointerDown={(event) => event.stopPropagation()}
+              onPointerMove={(event) => event.stopPropagation()}
+              onPointerUp={(event) => event.stopPropagation()}
+              onPointerCancel={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="icon-button"
+                onClick={handleZoomOut}
+                disabled={slot.viewScale <= MIN_VIEW_SCALE}
+                aria-label={`${slot.label}を縮小`}
+                title="縮小"
+              >
+                <Minus size={17} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={handleResetView}
+                disabled={
+                  slot.viewScale <= MIN_VIEW_SCALE && slot.viewOffsetX === 0 && slot.viewOffsetY === 0
+                }
+                aria-label={`${slot.label}の表示をリセット`}
+                title="リセット"
+              >
+                <RotateCcw size={17} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={handleZoomIn}
+                disabled={slot.viewScale >= MAX_VIEW_SCALE}
+                aria-label={`${slot.label}を拡大`}
+                title="拡大"
+              >
+                <Plus size={17} aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -243,11 +314,22 @@ export function VideoSlotPanel({
             aria-label={`${slot.label}の再生位置`}
           />
           <div className="slot-panel__actions slot-panel__actions--sync">
-            <button type="button" onClick={onSetSyncPoint} disabled={!slot.isReady}>
-              <CircleDot size={17} aria-hidden="true" />
-              基準点
+            <button
+              type="button"
+              className={`sync-point-button ${slot.hasSyncPoint ? "is-set" : ""}`}
+              onClick={onSetSyncPoint}
+              disabled={!slot.isReady}
+            >
+              {slot.hasSyncPoint ? (
+                <CheckCircle2 size={17} aria-hidden="true" />
+              ) : (
+                <CircleDot size={17} aria-hidden="true" />
+              )}
+              {slot.hasSyncPoint ? "基準点設定済み" : "基準点を設定"}
             </button>
-            <span className="sync-readout">{formatTime(slot.syncPointSec)}</span>
+            <span className={`sync-readout ${slot.hasSyncPoint ? "is-set" : "is-unset"}`}>
+              {syncStatusText}
+            </span>
           </div>
         </div>
       ) : null}
