@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "KinePair";
+"CFBundleName" = "KinePair";
+"NSPhotoLibraryAddUsageDescription" = "比較画像や動画を写真ライブラリに保存するために使用します。";

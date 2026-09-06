@@ -6,3 +6,10 @@ dist
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Xcode / SwiftPM local state
+.build
+DerivedData
+*.xcuserdata
+xcuserdata/
+*.xcuserstate

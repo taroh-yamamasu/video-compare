@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "KinePair";
+"CFBundleName" = "KinePair";
+"NSPhotoLibraryAddUsageDescription" = "KinePair uses this permission only when you save an exported comparison to Photos.";

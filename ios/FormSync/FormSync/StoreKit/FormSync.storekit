@@ -1,0 +1,33 @@
+{
+  "identifier" : "B4F9E0DA-6BE8-43A1-A834-8D0D2328208F",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "1200",
+      "familyShareable" : false,
+      "internalID" : "9B59E1CF-72E5-4A88-A596-1D3E27A24395",
+      "localizations" : [
+        {
+          "description" : "重ね比較、スロー、ループ、動画書き出し、複数履歴を解放します。",
+          "displayName" : "KinePair PRO",
+          "locale" : "ja_JP"
+        }
+      ],
+      "productID" : "formsync.pro.lifetime",
+      "referenceName" : "KinePair PRO",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_storefront" : "JPN"
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
