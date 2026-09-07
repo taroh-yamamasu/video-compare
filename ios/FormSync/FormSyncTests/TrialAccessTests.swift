@@ -99,6 +99,17 @@ final class TrialAccessTests: XCTestCase {
         XCTAssertFalse(session.isTrialHistory)
     }
 
+    @MainActor
+    func testLatestSessionUsesFirstVisibleSession() {
+        let viewModel = HomeViewModel()
+        let first = makeSession(title: "Latest", updatedAt: Date(timeIntervalSinceReferenceDate: 2))
+        let second = makeSession(title: "Older", updatedAt: Date(timeIntervalSinceReferenceDate: 1))
+
+        viewModel.sessions = [first, second]
+
+        XCTAssertEqual(viewModel.latestSession?.id, first.id)
+    }
+
     func testReviewRequestBecomesPendingAfterThirdComparison() {
         let identifier = UUID().uuidString
         let defaults = UserDefaults(suiteName: identifier)!
@@ -148,6 +159,21 @@ final class TrialAccessTests: XCTestCase {
                 originalFileName: fileName,
                 durationSeconds: 1
             )
+        )
+    }
+
+    private func makeSession(title: String, updatedAt: Date) -> CompareSession {
+        CompareSession(
+            id: UUID(),
+            createdAt: updatedAt,
+            updatedAt: updatedAt,
+            title: title,
+            leftSlot: makeSessionSlot(fileName: "left.mov"),
+            rightSlot: makeSessionSlot(fileName: "right.mov"),
+            settings: CompareSettings(),
+            overlaySettings: OverlaySettings(),
+            compareMode: .setup,
+            timelineSeconds: 0
         )
     }
 

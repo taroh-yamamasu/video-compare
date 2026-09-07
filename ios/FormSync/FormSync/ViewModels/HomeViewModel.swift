@@ -16,6 +16,10 @@ final class HomeViewModel: ObservableObject {
     private var settingsStore: SettingsStore
     private var hasExpandedHistoryAccess = false
 
+    var latestSession: CompareSession? {
+        sessions.first
+    }
+
     init(
         videoPickerService: VideoPickerService = VideoPickerService(),
         sessionStore: CompareSessionStore = CompareSessionStore(),

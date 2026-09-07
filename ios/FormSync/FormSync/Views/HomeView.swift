@@ -24,6 +24,7 @@ struct HomeView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppTheme.spacingL) {
                         heroVideoPicker(size: proxy.size)
+                        continueLastSessionButton
                         sampleComparisonButton
                         historyPanel
 
@@ -161,10 +162,10 @@ struct HomeView: View {
         let isCompact = AppTheme.isCompactPhone(size)
         let isRegular = AppTheme.isRegularWidth(size)
         let usesWideHero = usesWideHeroLayout(for: size)
-        let titleSize: CGFloat = isCompact ? 36 : 42
+        let titleSize: CGFloat = isCompact ? 32 : 40
         let panelMinHeight: CGFloat = usesWideHero
-            ? AppTheme.clamped(size.height * 0.40, min: 300, max: 380)
-            : (isRegular ? AppTheme.clamped(size.height * 0.48, min: 390, max: 460) : (isCompact ? 330 : 360))
+            ? AppTheme.clamped(size.height * 0.36, min: 260, max: 340)
+            : (isRegular ? AppTheme.clamped(size.height * 0.42, min: 340, max: 410) : (isCompact ? 286 : 320))
         let panelPadding: CGFloat = isCompact ? AppTheme.spacingM : AppTheme.spacingL
 
         return Group {
@@ -194,26 +195,26 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, minHeight: panelMinHeight, alignment: usesWideHero ? .center : .topLeading)
         .padding(panelPadding)
-        .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous))
+        .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous)
-                .stroke(Color.black.opacity(0.12))
+                .stroke(AppTheme.divider)
         )
-        .shadow(color: AppTheme.accent.opacity(0.22), radius: 26, x: 0, y: 14)
+        .shadow(color: .black.opacity(0.28), radius: 22, x: 0, y: 14)
     }
 
     private func heroCopy(titleSize: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: AppTheme.spacingM) {
             Text("KinePair")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(AppTheme.accentText)
+                .foregroundStyle(AppTheme.accent)
                 .padding(.horizontal, AppTheme.spacingS)
                 .padding(.vertical, AppTheme.spacingXS)
-                .background(.black.opacity(0.10), in: RoundedRectangle(cornerRadius: AppTheme.radiusS, style: .continuous))
+                .background(AppTheme.accentSurface, in: RoundedRectangle(cornerRadius: AppTheme.radiusS, style: .continuous))
 
             Text("Compare two movements in seconds")
                 .font(.system(size: titleSize, weight: .black, design: .rounded))
-                .foregroundStyle(AppTheme.accentText)
+                .foregroundStyle(AppTheme.textPrimary)
                 .lineLimit(3)
                 .minimumScaleFactor(0.76)
                 .padding(.top, AppTheme.spacingS)
@@ -224,20 +225,81 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: AppTheme.spacingS) {
             Text("New Comparison")
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentText.opacity(0.76))
+                .foregroundStyle(AppTheme.textSecondary)
 
             Label("Choose Two Videos", systemImage: "plus")
-                .font(.callout.weight(.black))
+                .font(.headline.weight(.black))
                 .foregroundStyle(AppTheme.accentText)
+                .frame(maxWidth: .infinity, minHeight: AppTheme.minimumTouchTarget)
                 .padding(.horizontal, AppTheme.spacingM)
-                .padding(.vertical, AppTheme.spacingS)
-                .background(.black.opacity(0.12), in: RoundedRectangle(cornerRadius: AppTheme.radiusS, style: .continuous))
+                .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: AppTheme.radiusS, style: .continuous))
 
             if !purchaseManager.isProUnlocked {
                 Label(trialStatusText, systemImage: purchaseManager.hasRemainingTrialUses ? "sparkles" : "lock")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.accentText.opacity(0.76))
+                    .foregroundStyle(AppTheme.textSecondary)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var continueLastSessionButton: some View {
+        if let session = viewModel.latestSession {
+            Button {
+                Task {
+                    await viewModel.openSession(session)
+                }
+            } label: {
+                HStack(spacing: AppTheme.spacingM) {
+                    Image(systemName: "play.fill")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(AppTheme.accentText)
+                        .frame(width: AppTheme.minimumTouchTarget, height: AppTheme.minimumTouchTarget)
+                        .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: AppTheme.radiusS, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: AppTheme.spacingXS) {
+                        Text("Resume your latest comparison")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.accent)
+
+                        Text(session.title)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .lineLimit(1)
+
+                        HStack(spacing: AppTheme.spacingXS) {
+                            Text(session.settings.displayMode.label)
+                            Text("·")
+                            Text(
+                                session.hasSyncPoints
+                                    ? String(localized: "Reference points set")
+                                    : String(localized: "Reference points not set")
+                            )
+                            Text("·")
+                            Text(session.updatedAt, style: .relative)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(1)
+                    }
+
+                    Spacer(minLength: AppTheme.spacingS)
+
+                    Image(systemName: "chevron.right")
+                        .font(.callout.weight(.bold))
+                        .foregroundStyle(AppTheme.tertiaryText)
+                }
+                .padding(AppTheme.spacingM)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppTheme.backgroundSecondary, in: RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous)
+                        .stroke(AppTheme.accentBorder)
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isLoading)
+            .accessibilityIdentifier("home.continueLastSession")
         }
     }
 
@@ -299,9 +361,11 @@ struct HomeView: View {
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
-            .foregroundStyle(AppTheme.accentText)
+            .foregroundStyle(AppTheme.accent)
             .frame(maxWidth: .infinity)
             .frame(height: height)
+            .padding(.horizontal, AppTheme.spacingM)
+            .background(AppTheme.backgroundPrimary, in: RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous))
             .accessibilityHidden(true)
     }
 
@@ -327,9 +391,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var historyPanel: some View {
-        if viewModel.sessions.isEmpty {
-            historyCard(isEnabled: false)
-        } else {
+        if !viewModel.sessions.isEmpty {
             Button {
                 showsHistory = true
             } label: {
