@@ -1,0 +1,63 @@
+{
+  "compareMode" : "synced",
+  "createdAt" : 0,
+  "id" : "60C3E03A-73B8-4BC2-A120-FAD13CC72737",
+  "leftSlot" : {
+    "currentTimeSeconds" : 2.5,
+    "hasSyncPoint" : true,
+    "syncPointSeconds" : 2.5,
+    "video" : {
+      "durationSeconds" : 12,
+      "fileName" : "left.mov",
+      "originalFileName" : "Left.mov"
+    },
+    "viewOffsetX" : 0,
+    "viewOffsetY" : 0,
+    "viewScale" : 1
+  },
+  "overlaySettings" : {
+    "editingSide" : "right",
+    "leftTransform" : {
+      "opacity" : 1,
+      "rotationDegrees" : 0,
+      "scale" : 1,
+      "translateX" : 0,
+      "translateY" : 0
+    },
+    "rightTransform" : {
+      "opacity" : 0.5,
+      "rotationDegrees" : 0,
+      "scale" : 1,
+      "translateX" : 0,
+      "translateY" : 0
+    }
+  },
+  "rightSlot" : {
+    "currentTimeSeconds" : 3,
+    "hasSyncPoint" : true,
+    "syncPointSeconds" : 3,
+    "video" : {
+      "durationSeconds" : 14,
+      "fileName" : "right.mov",
+      "originalFileName" : "Right.mov"
+    },
+    "viewOffsetX" : 0,
+    "viewOffsetY" : 0,
+    "viewScale" : 1
+  },
+  "settings" : {
+    "displayMode" : "sideBySide",
+    "loopRange" : {
+      "isEnabled" : false
+    },
+    "playbackRate" : 1,
+    "stepSeconds" : 0.1,
+    "syncSettings" : {
+      "leftOffsetSeconds" : 2.5,
+      "rightOffsetSeconds" : 3
+    }
+  },
+  "timelineSeconds" : 1.25,
+  "title" : "KinePair 1.3.2 Session",
+  "updatedAt" : 1
+}

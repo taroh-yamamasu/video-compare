@@ -86,6 +86,19 @@ final class TrialAccessTests: XCTestCase {
         XCTAssertFalse(decoded.isTrialHistory)
     }
 
+    func testV132SessionFixtureStillDecodes() throws {
+        let fixtureURL = try XCTUnwrap(
+            Bundle(for: Self.self).url(forResource: "session-v1.3.2", withExtension: "json")
+        )
+        let data = try Data(contentsOf: fixtureURL)
+        let session = try JSONDecoder().decode(CompareSession.self, from: data)
+
+        XCTAssertEqual(session.title, "KinePair 1.3.2 Session")
+        XCTAssertEqual(session.compareMode, .synced)
+        XCTAssertTrue(session.hasSyncPoints)
+        XCTAssertFalse(session.isTrialHistory)
+    }
+
     func testReviewRequestBecomesPendingAfterThirdComparison() {
         let identifier = UUID().uuidString
         let defaults = UserDefaults(suiteName: identifier)!
