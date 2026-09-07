@@ -58,8 +58,7 @@ struct CompareView: View {
                         HStack(alignment: .top, spacing: AppTheme.spacingM) {
                             stageSection(
                                 size: proxy.size,
-                                isLandscape: isLandscape,
-                                embedsOverlayControls: false
+                                isLandscape: isLandscape
                             )
                             .frame(maxWidth: .infinity, alignment: .top)
 
@@ -70,8 +69,7 @@ struct CompareView: View {
                         VStack(spacing: spacing) {
                             stageSection(
                                 size: proxy.size,
-                                isLandscape: isLandscape,
-                                embedsOverlayControls: true
+                                isLandscape: isLandscape
                             )
                             controls(wrapsDenseControls: wrapsDenseControls)
                         }
@@ -92,6 +90,9 @@ struct CompareView: View {
         .sheet(isPresented: $showsExportSheet) {
             ExportView(viewModel: viewModel, hasTrialAccess: hasTrialAccess)
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showsSyncedDetails) {
+            syncedDetailsSheet
         }
         .sheet(item: $proPaywallFeature) { feature in
             ProPaywallView(feature: feature)
@@ -136,8 +137,7 @@ struct CompareView: View {
     @ViewBuilder
     private func stageSection(
         size: CGSize,
-        isLandscape: Bool,
-        embedsOverlayControls: Bool
+        isLandscape: Bool
     ) -> some View {
         if viewModel.compareMode == .setup {
             VStack(alignment: .leading, spacing: AppTheme.spacingM) {
@@ -145,14 +145,7 @@ struct CompareView: View {
                 setupStage(size: size, isLandscape: isLandscape)
             }
         } else if viewModel.settings.displayMode == .overlayPreview {
-            if embedsOverlayControls {
-                VStack(spacing: AppTheme.spacingS) {
-                    overlayStage(height: overlayHeight(for: size, isLandscape: isLandscape))
-                    overlayControls
-                }
-            } else {
-                overlayStage(height: overlayHeight(for: size, isLandscape: isLandscape))
-            }
+            overlayStage(height: overlayHeight(for: size, isLandscape: isLandscape))
         } else if viewModel.settings.displayMode == .sideBySide {
             HStack(spacing: AppTheme.spacingS) {
                 syncedVideoPane(side: .left, height: syncedPaneHeight(for: size, isLandscape: isLandscape))
@@ -559,6 +552,8 @@ struct CompareView: View {
 
     private func syncedControls(isCompact: Bool = false, wrapsDenseControls: Bool = false) -> some View {
         VStack(spacing: isCompact ? AppTheme.spacingS : AppTheme.spacingM) {
+            displayModeSelector(wrapsDenseControls: wrapsDenseControls)
+
             HStack {
                 Text("Sync \(signedTime(viewModel.playbackState.timelineSeconds))")
                 Spacer()
@@ -629,33 +624,40 @@ struct CompareView: View {
             }
 
             HStack(spacing: AppTheme.spacingS) {
-                Button {
-                    viewModel.exitSyncedCompare()
+                Menu {
+                    ForEach(PlaybackRate.allCases) { rate in
+                        Button {
+                            if rate.requiresPro, !canUse(.slowPlayback) {
+                                proPaywallFeature = .slowPlayback
+                            } else {
+                                viewModel.setPlaybackRate(rate)
+                            }
+                        } label: {
+                            if viewModel.settings.playbackRate == rate {
+                                Label(rate.label, systemImage: "checkmark")
+                            } else {
+                                Text(rate.label)
+                            }
+                        }
+                    }
                 } label: {
-                    Image(systemName: "slider.horizontal.3")
+                    Label(viewModel.settings.playbackRate.label, systemImage: "speedometer")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+                .proBadgeOverlay(viewModel.settings.playbackRate.requiresPro && !canUse(.slowPlayback))
+
+                Button {
+                    showsSyncedDetails = true
+                } label: {
+                    Image(systemName: "ellipsis")
                         .frame(width: 34, height: 34)
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
-                .accessibilityLabel("Edit Reference Points")
-
-                Button {
-                    performProFeature(.loop) {
-                        viewModel.toggleLoop()
-                    }
-                } label: {
-                    Label(
-                        viewModel.settings.loopRange.isEnabled
-                            ? String(localized: "Loop OFF")
-                            : String(localized: "Loop ON"),
-                        systemImage: "repeat"
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .foregroundStyle(AppTheme.accentText)
-                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
-                .proBadgeOverlay(!canUse(.loop))
+                .accessibilityIdentifier("compare.details")
+                .accessibilityLabel("Advanced Settings")
 
                 Button {
                     showsExportSheet = true
@@ -675,36 +677,66 @@ struct CompareView: View {
                 .accessibilityIdentifier("compare.export")
                 .accessibilityLabel("Export")
             }
+        }
+    }
 
-            if isCompact {
-                VStack(alignment: .leading, spacing: AppTheme.spacingS) {
-                    Text("Advanced Settings")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.secondaryText)
+    private var syncedDetailsContent: some View {
+        VStack(spacing: AppTheme.spacingM) {
+            displayModeSelector(wrapsDenseControls: true)
+            playbackRateSelector(wrapsDenseControls: true)
+            stepSelector(wrapsDenseControls: true)
+            loopControls(wrapsDenseControls: true)
 
-                    syncedDetailsContent(isCompact: true, wrapsDenseControls: true)
-                }
-            } else {
-                DisclosureGroup(isExpanded: $showsSyncedDetails) {
-                    syncedDetailsContent(isCompact: false, wrapsDenseControls: wrapsDenseControls)
-                        .padding(.top, AppTheme.spacingS)
+            HStack(spacing: AppTheme.spacingS) {
+                Button {
+                    showsSyncedDetails = false
+                    viewModel.exitSyncedCompare()
                 } label: {
-                    Text("Advanced Settings")
-                        .accessibilityIdentifier("compare.details")
+                    Label("Edit Reference Points", systemImage: "scope")
+                        .frame(maxWidth: .infinity)
                 }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.secondaryText)
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+
+                Button {
+                    Task {
+                        await viewModel.swapVideos()
+                    }
+                } label: {
+                    Label("Swap Videos", systemImage: "arrow.left.arrow.right")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
             }
         }
     }
 
-    private func syncedDetailsContent(isCompact: Bool, wrapsDenseControls: Bool) -> some View {
-        VStack(spacing: isCompact ? AppTheme.spacingS : AppTheme.spacingM) {
-            displayModeSelector(wrapsDenseControls: wrapsDenseControls)
-            playbackRateSelector(wrapsDenseControls: wrapsDenseControls)
-            stepSelector(wrapsDenseControls: wrapsDenseControls)
-            loopControls(isCompact: isCompact, wrapsDenseControls: wrapsDenseControls)
+    private var syncedDetailsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: AppTheme.spacingM) {
+                    syncedDetailsContent
+
+                    if viewModel.settings.displayMode == .overlayPreview {
+                        overlayControls
+                    }
+                }
+                .padding(AppTheme.spacingL)
+            }
+            .background(AppTheme.background.ignoresSafeArea())
+            .navigationTitle("Advanced Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Close") {
+                        showsSyncedDetails = false
+                    }
+                }
+            }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder

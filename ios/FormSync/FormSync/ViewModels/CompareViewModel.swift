@@ -449,20 +449,6 @@ final class CompareViewModel: ObservableObject {
             pause()
         }
 
-        if compareMode == .synced, mode == .overlayPreview {
-            let syncPointTimeline = clampedTimeline(0)
-            playbackState.timelineSeconds = syncPointTimeline
-            settings.displayMode = mode
-            settingsStore.lastDisplayMode = mode
-            toastMessage = nil
-            persistSession()
-
-            Task { @MainActor in
-                await seekNormalized(to: syncPointTimeline)
-            }
-            return
-        }
-
         settings.displayMode = mode
         settingsStore.lastDisplayMode = mode
         persistSession()

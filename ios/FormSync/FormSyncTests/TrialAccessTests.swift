@@ -170,6 +170,24 @@ final class TrialAccessTests: XCTestCase {
         XCTAssertFalse(viewModel.leftSlot.hasSyncPoint)
     }
 
+    @MainActor
+    func testDisplayModeChangePreservesTimeline() async {
+        let viewModel = CompareViewModel(
+            leftVideo: VideoItem(url: URL(fileURLWithPath: "/sample-a.mp4"), fileName: "Sample A", durationSeconds: 2),
+            rightVideo: VideoItem(url: URL(fileURLWithPath: "/sample-b.mp4"), fileName: "Sample B", durationSeconds: 2),
+            ownsTemporaryVideos: false,
+            isSample: true
+        )
+        viewModel.setSyncPoint(.left)
+        viewModel.setSyncPoint(.right)
+        await viewModel.startSyncedCompare()
+        viewModel.playbackState.timelineSeconds = 0.75
+
+        viewModel.setDisplayMode(.overlayPreview)
+
+        XCTAssertEqual(viewModel.playbackState.timelineSeconds, 0.75)
+    }
+
     private func makeSessionSlot(fileName: String) -> CompareSessionSlot {
         CompareSessionSlot(
             video: CompareSessionVideo(
