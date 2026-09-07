@@ -14,12 +14,7 @@ struct VideoSlotState: Identifiable, Equatable {
     var id: VideoSide { side }
 
     var label: String {
-        switch side {
-        case .left:
-            return String(localized: "Left Video")
-        case .right:
-            return String(localized: "Right Video")
-        }
+        "\(String(localized: "Video")) \(side.setupLabel)"
     }
 }
 

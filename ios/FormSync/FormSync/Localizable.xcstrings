@@ -1472,6 +1472,22 @@
         }
       }
     },
+    "Match the Same Moment" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ瞬間を合わせる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "같은 순간 맞추기"
+          }
+        }
+      }
+    },
     "Move Step" : {
       "extractionState" : "stale",
       "localizations" : {

@@ -253,6 +253,8 @@ final class CompareViewModel: ObservableObject {
     }
 
     func setSyncPoint(_ side: VideoSide) {
+        playerSyncService.pause(side: side)
+        setSlot(side, isPlaying: false)
         let playerTime = player(for: side).currentTime().seconds
         let currentTime = playerTime.isFinite ? playerTime : slot(for: side).currentTimeSeconds
 
@@ -272,6 +274,25 @@ final class CompareViewModel: ObservableObject {
             setSlot(side, currentTimeSeconds: slot(for: side).syncPointSeconds)
         }
         toastMessage = L10n.format("Set the reference point for %@.", slot(for: side).label)
+        errorMessage = nil
+        persistSession()
+    }
+
+    func clearSyncPoint(_ side: VideoSide) {
+        playerSyncService.pause(side: side)
+        setSlot(side, isPlaying: false)
+
+        if side == .left {
+            leftSlot.hasSyncPoint = false
+            leftSlot.syncPointSeconds = 0
+        } else {
+            rightSlot.hasSyncPoint = false
+            rightSlot.syncPointSeconds = 0
+        }
+
+        recalculateTimelineBounds()
+        playbackState.timelineSeconds = 0
+        toastMessage = nil
         errorMessage = nil
         persistSession()
     }

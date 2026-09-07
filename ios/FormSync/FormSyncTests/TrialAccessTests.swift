@@ -152,6 +152,24 @@ final class TrialAccessTests: XCTestCase {
         XCTAssertNil(pair.session)
     }
 
+    @MainActor
+    func testClearingAReferencePointDisablesComparison() {
+        let viewModel = CompareViewModel(
+            leftVideo: VideoItem(url: URL(fileURLWithPath: "/sample-a.mp4"), fileName: "Sample A", durationSeconds: 1),
+            rightVideo: VideoItem(url: URL(fileURLWithPath: "/sample-b.mp4"), fileName: "Sample B", durationSeconds: 1),
+            ownsTemporaryVideos: false,
+            isSample: true
+        )
+
+        viewModel.setSyncPoint(.left)
+        viewModel.setSyncPoint(.right)
+        XCTAssertTrue(viewModel.canStartSyncedCompare)
+
+        viewModel.clearSyncPoint(.left)
+        XCTAssertFalse(viewModel.canStartSyncedCompare)
+        XCTAssertFalse(viewModel.leftSlot.hasSyncPoint)
+    }
+
     private func makeSessionSlot(fileName: String) -> CompareSessionSlot {
         CompareSessionSlot(
             video: CompareSessionVideo(

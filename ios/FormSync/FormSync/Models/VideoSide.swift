@@ -6,12 +6,11 @@ enum VideoSide: String, CaseIterable, Identifiable, Hashable, Codable {
 
     var id: String { rawValue }
 
+    var setupLabel: String {
+        self == .left ? "A" : "B"
+    }
+
     var displayName: String {
-        switch self {
-        case .left:
-            return String(localized: "Left")
-        case .right:
-            return String(localized: "Right")
-        }
+        setupLabel
     }
 }

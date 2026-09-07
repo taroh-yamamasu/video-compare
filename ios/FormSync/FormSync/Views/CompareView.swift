@@ -85,7 +85,7 @@ struct CompareView: View {
             }
             .background(AppTheme.background.ignoresSafeArea())
         }
-        .navigationTitle("Comparison")
+        .navigationTitle(viewModel.compareMode == .setup ? "Reference Points" : "Comparison")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppTheme.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
@@ -140,7 +140,10 @@ struct CompareView: View {
         embedsOverlayControls: Bool
     ) -> some View {
         if viewModel.compareMode == .setup {
-            setupStage(size: size, isLandscape: isLandscape)
+            VStack(alignment: .leading, spacing: AppTheme.spacingM) {
+                setupHeader
+                setupStage(size: size, isLandscape: isLandscape)
+            }
         } else if viewModel.settings.displayMode == .overlayPreview {
             if embedsOverlayControls {
                 VStack(spacing: AppTheme.spacingS) {
@@ -161,6 +164,19 @@ struct CompareView: View {
                 syncedVideoPane(side: .right, height: syncedPaneHeight(for: size, isLandscape: false))
             }
         }
+    }
+
+    private var setupHeader: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacingXS) {
+            Text("Match the Same Moment")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(AppTheme.primaryText)
+
+            Text("Set the moment used to align each video.")
+                .font(.callout)
+                .foregroundStyle(AppTheme.secondaryText)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -231,6 +247,16 @@ struct CompareView: View {
 
             HStack(spacing: AppTheme.spacingS) {
                 Button {
+                    viewModel.toggleSlotPlayback(side)
+                } label: {
+                    Image(systemName: slot.isPlaying ? "pause.fill" : "play.fill")
+                        .frame(maxWidth: .infinity, minHeight: 34)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+                .accessibilityLabel(slot.isPlaying ? String(localized: "Pause") : String(localized: "Play"))
+
+                Button {
                     Task {
                         await viewModel.stepSlot(side, direction: -1)
                     }
@@ -268,6 +294,18 @@ struct CompareView: View {
                 .foregroundStyle(AppTheme.accentText)
                 .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
                 .accessibilityIdentifier("compare.setReference.\(side.rawValue)")
+
+                if slot.hasSyncPoint {
+                    Button {
+                        viewModel.clearSyncPoint(side)
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise")
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+                    .accessibilityLabel("\(String(localized: "Clear")) \(slot.label)")
+                }
 
                 if !viewModel.isSample {
                     PhotosPicker(
@@ -420,7 +458,7 @@ struct CompareView: View {
             messageView
 
             if viewModel.compareMode == .setup {
-                setupControls(isCompact: isCompact, wrapsDenseControls: wrapsDenseControls)
+                setupControls(isCompact: isCompact)
             } else {
                 syncedControls(isCompact: isCompact, wrapsDenseControls: wrapsDenseControls)
             }
@@ -455,11 +493,8 @@ struct CompareView: View {
         }
     }
 
-    private func setupControls(isCompact: Bool = false, wrapsDenseControls: Bool = false) -> some View {
+    private func setupControls(isCompact: Bool = false) -> some View {
         VStack(spacing: isCompact ? AppTheme.spacingS : AppTheme.spacingM) {
-            if !viewModel.canStartSyncedCompare {
-                setupInstruction
-            }
             syncStatusSummary(isCompact: isCompact)
             trialAccessStatus
 
@@ -494,8 +529,6 @@ struct CompareView: View {
                 .accessibilityLabel("Swap Videos")
             }
 
-            displayModeSelector(wrapsDenseControls: wrapsDenseControls)
-
         }
     }
 
@@ -522,26 +555,6 @@ struct CompareView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private var setupInstruction: some View {
-        HStack(alignment: .top, spacing: AppTheme.spacingS) {
-            Image(systemName: "scope")
-                .foregroundStyle(AppTheme.accent)
-                .font(.callout.weight(.semibold))
-
-            Text("Set a reference point in each video for synchronized comparison.")
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(AppTheme.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AppTheme.spacingM)
-        .background(AppTheme.accentSurface, in: RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous)
-                .stroke(AppTheme.accentBorder)
-        )
     }
 
     private func syncedControls(isCompact: Bool = false, wrapsDenseControls: Bool = false) -> some View {
