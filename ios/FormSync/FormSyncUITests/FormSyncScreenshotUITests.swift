@@ -100,6 +100,9 @@ final class FormSyncScreenshotUITests: XCTestCase {
         tapElement(named: "compare.setReference.left")
         tapElement(named: "compare.setReference.right")
         tapElement(named: "compare.start")
+        tapElement(named: "compare.fullscreen.enter")
+        XCTAssertTrue(app.buttons["compare.fullscreen.exit"].waitForExistence(timeout: 5))
+        tapElement(named: "compare.fullscreen.exit")
         waitForQuietUI()
         capture("\(languagePrefix)-03-side-by-side")
 

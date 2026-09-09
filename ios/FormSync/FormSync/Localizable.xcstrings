@@ -591,6 +591,22 @@
         }
       }
     },
+    "Enter Full Screen" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フルスクリーンにする"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전체 화면으로 전환"
+          }
+        }
+      }
+    },
     "End" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -604,6 +620,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "종료"
+          }
+        }
+      }
+    },
+    "Exit Full Screen" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フルスクリーンを終了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전체 화면 종료"
           }
         }
       }
@@ -2161,6 +2193,22 @@
         }
       }
     },
+    "Reset Framing" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示位置をリセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면 구도 재설정"
+          }
+        }
+      }
+    },
     "Reset Overlay Alignment" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2848,6 +2896,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ 표시"
+          }
+        }
+      }
+    },
+    "Show Controls" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コントロールを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컨트롤 표시"
           }
         }
       }

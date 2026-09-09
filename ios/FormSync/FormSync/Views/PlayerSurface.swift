@@ -36,25 +36,43 @@ struct ZoomablePlayerSurface: UIViewRepresentable {
     let player: AVPlayer
     let videoGravity: AVLayerVideoGravity
     let maximumZoomScale: CGFloat
+    let resetTrigger: Int
+    let onSingleTap: () -> Void
 
     init(
         player: AVPlayer,
         videoGravity: AVLayerVideoGravity = .resizeAspect,
-        maximumZoomScale: CGFloat = 4
+        maximumZoomScale: CGFloat = 4,
+        resetTrigger: Int = 0,
+        onSingleTap: @escaping () -> Void = {}
     ) {
         self.player = player
         self.videoGravity = videoGravity
         self.maximumZoomScale = maximumZoomScale
+        self.resetTrigger = resetTrigger
+        self.onSingleTap = onSingleTap
     }
 
     func makeUIView(context: Context) -> ZoomablePlayerScrollView {
         let view = ZoomablePlayerScrollView()
-        view.configure(player: player, videoGravity: videoGravity, maximumZoomScale: maximumZoomScale)
+        view.configure(
+            player: player,
+            videoGravity: videoGravity,
+            maximumZoomScale: maximumZoomScale,
+            resetTrigger: resetTrigger,
+            onSingleTap: onSingleTap
+        )
         return view
     }
 
     func updateUIView(_ uiView: ZoomablePlayerScrollView, context: Context) {
-        uiView.configure(player: player, videoGravity: videoGravity, maximumZoomScale: maximumZoomScale)
+        uiView.configure(
+            player: player,
+            videoGravity: videoGravity,
+            maximumZoomScale: maximumZoomScale,
+            resetTrigger: resetTrigger,
+            onSingleTap: onSingleTap
+        )
     }
 
     static func dismantleUIView(_ uiView: ZoomablePlayerScrollView, coordinator: ()) {
@@ -65,6 +83,8 @@ struct ZoomablePlayerSurface: UIViewRepresentable {
 final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
     private let playerView = PlayerContainerView()
     private var laidOutSize: CGSize = .zero
+    private var resetTrigger = 0
+    private var onSingleTap: () -> Void = {}
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -76,7 +96,14 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
         configureScrollView()
     }
 
-    func configure(player: AVPlayer, videoGravity: AVLayerVideoGravity, maximumZoomScale: CGFloat) {
+    func configure(
+        player: AVPlayer,
+        videoGravity: AVLayerVideoGravity,
+        maximumZoomScale: CGFloat,
+        resetTrigger: Int,
+        onSingleTap: @escaping () -> Void
+    ) {
+        self.onSingleTap = onSingleTap
         if self.maximumZoomScale != maximumZoomScale {
             self.maximumZoomScale = maximumZoomScale
         }
@@ -85,6 +112,10 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
         }
         if playerView.playerLayer.videoGravity != videoGravity {
             playerView.playerLayer.videoGravity = videoGravity
+        }
+        if self.resetTrigger != resetTrigger {
+            self.resetTrigger = resetTrigger
+            resetFraming(animated: true)
         }
     }
 
@@ -140,9 +171,13 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
 
         addSubview(playerView)
 
-        let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
-        recognizer.numberOfTapsRequired = 2
-        addGestureRecognizer(recognizer)
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap))
+        doubleTap.numberOfTapsRequired = 2
+        addGestureRecognizer(doubleTap)
+
+        let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap))
+        singleTap.require(toFail: doubleTap)
+        addGestureRecognizer(singleTap)
     }
 
     private func updateInsets() {
@@ -160,25 +195,17 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
         panGestureRecognizer.isEnabled = zoomScale > minimumZoomScale + 0.01
     }
 
-    @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
-        if zoomScale > minimumZoomScale + 0.01 {
-            setZoomScale(minimumZoomScale, animated: true)
-            return
-        }
+    @objc private func handleSingleTap() {
+        onSingleTap()
+    }
 
-        let targetZoomScale = min(maximumZoomScale, 2)
-        let location = recognizer.location(in: playerView)
-        let zoomSize = CGSize(
-            width: bounds.width / targetZoomScale,
-            height: bounds.height / targetZoomScale
-        )
-        let zoomRect = CGRect(
-            x: location.x - zoomSize.width / 2,
-            y: location.y - zoomSize.height / 2,
-            width: zoomSize.width,
-            height: zoomSize.height
-        )
-        zoom(to: zoomRect, animated: true)
+    @objc private func handleDoubleTap() {
+        resetFraming(animated: true)
+    }
+
+    private func resetFraming(animated: Bool) {
+        setZoomScale(minimumZoomScale, animated: animated)
+        setContentOffset(.zero, animated: animated)
     }
 }
 

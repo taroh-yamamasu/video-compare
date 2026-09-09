@@ -7,6 +7,7 @@ struct CompareView: View {
     @StateObject private var viewModel: CompareViewModel
     @EnvironmentObject private var purchaseManager: PurchaseManager
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var leftReplacement: PhotosPickerItem?
     @State private var rightReplacement: PhotosPickerItem?
     @State private var focusedSetupSide: VideoSide = .left
@@ -20,6 +21,10 @@ struct CompareView: View {
     @State private var overlayScaleStep: Double = 0.01
     @State private var overlayRotationStep: Double = 1
     @State private var isScreenCaptured = UIScreen.main.isCaptured
+    @State private var isFullscreen = false
+    @State private var showsFullscreenControls = true
+    @State private var fullscreenAutoHideTask: Task<Void, Never>?
+    @State private var framingResetTriggers: [VideoSide: Int] = [:]
     @GestureState private var overlayPinchMagnification = 1.0
     @GestureState private var overlayDragTranslation = CGSize.zero
 
@@ -52,39 +57,44 @@ struct CompareView: View {
             let topPadding = isPhoneLandscape || usesSidebar ? AppTheme.spacingS : AppTheme.pageVerticalPadding(for: proxy.size)
             let bottomPadding = isPhoneLandscape || usesSidebar ? AppTheme.spacingM : AppTheme.spacingL
 
-            ScrollView(.vertical) {
-                Group {
-                    if usesSidebar {
-                        HStack(alignment: .top, spacing: AppTheme.spacingM) {
-                            stageSection(
-                                size: proxy.size,
-                                isLandscape: isLandscape
-                            )
-                            .frame(maxWidth: .infinity, alignment: .top)
+            if isFullscreen {
+                fullscreenWorkspace(size: proxy.size)
+            } else {
+                ScrollView(.vertical) {
+                    Group {
+                        if usesSidebar {
+                            HStack(alignment: .top, spacing: AppTheme.spacingM) {
+                                stageSection(
+                                    size: proxy.size,
+                                    isLandscape: isLandscape
+                                )
+                                .frame(maxWidth: .infinity, alignment: .top)
 
-                            sidebarControls
-                                .frame(width: compareSidebarWidth(for: proxy.size), alignment: .top)
-                        }
-                    } else {
-                        VStack(spacing: spacing) {
-                            stageSection(
-                                size: proxy.size,
-                                isLandscape: isLandscape
-                            )
-                            controls(wrapsDenseControls: wrapsDenseControls)
+                                sidebarControls
+                                    .frame(width: compareSidebarWidth(for: proxy.size), alignment: .top)
+                            }
+                        } else {
+                            VStack(spacing: spacing) {
+                                stageSection(
+                                    size: proxy.size,
+                                    isLandscape: isLandscape
+                                )
+                                controls(wrapsDenseControls: wrapsDenseControls)
+                            }
                         }
                     }
+                    .padding(.horizontal, horizontalPadding)
+                    .padding(.top, topPadding)
+                    .padding(.bottom, bottomPadding)
+                    .frame(maxWidth: compareContentWidthLimit(for: proxy.size), alignment: .top)
+                    .frame(maxWidth: .infinity, alignment: .top)
                 }
-                .padding(.horizontal, horizontalPadding)
-                .padding(.top, topPadding)
-                .padding(.bottom, bottomPadding)
-                .frame(maxWidth: compareContentWidthLimit(for: proxy.size), alignment: .top)
-                .frame(maxWidth: .infinity, alignment: .top)
+                .background(AppTheme.background.ignoresSafeArea())
             }
-            .background(AppTheme.background.ignoresSafeArea())
         }
         .navigationTitle(viewModel.compareMode == .setup ? "Reference Points" : "Comparison")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
         .toolbarBackground(AppTheme.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $showsExportSheet) {
@@ -121,6 +131,7 @@ struct CompareView: View {
             enforceEntitlements()
         }
         .onDisappear {
+            fullscreenAutoHideTask?.cancel()
             if viewModel.compareMode == .synced,
                !viewModel.isSample,
                viewModel.hasMeaningfulComparisonActivity,
@@ -131,6 +142,110 @@ struct CompareView: View {
             }
             viewModel.pause()
             viewModel.persistSession()
+        }
+    }
+
+    private func fullscreenWorkspace(size: CGSize) -> some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            fullscreenStage(size: size)
+
+            if showsFullscreenControls {
+                VStack(spacing: AppTheme.spacingM) {
+                    HStack {
+                        Spacer()
+                        Button {
+                            exitFullscreen()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.white)
+                        .accessibilityIdentifier("compare.fullscreen.exit")
+                        .accessibilityLabel("Exit Full Screen")
+                    }
+
+                    Spacer()
+
+                    VStack(spacing: AppTheme.spacingS) {
+                        HStack {
+                            Text("Sync \(signedTime(viewModel.playbackState.timelineSeconds))")
+                            Spacer()
+                            Text(TimeFormatter.short(viewModel.playbackState.comparableDurationSeconds))
+                        }
+                        .font(.caption.monospacedDigit())
+
+                        TappableSeekSlider(
+                            value: Binding(
+                                get: { viewModel.playbackState.timelineSeconds },
+                                set: { viewModel.scrub(to: $0) }
+                            ),
+                            range: viewModel.playbackState.timelineRange,
+                            isEnabled: viewModel.playbackState.hasValidTimelineRange,
+                            onEditingChanged: { isEditing in
+                                if isEditing {
+                                    fullscreenAutoHideTask?.cancel()
+                                    viewModel.beginScrubbing()
+                                } else {
+                                    Task {
+                                        await viewModel.endScrubbing()
+                                        showFullscreenControls()
+                                    }
+                                }
+                            }
+                        )
+
+                        Button {
+                            Task {
+                                await viewModel.togglePlayback()
+                                showFullscreenControls()
+                            }
+                        } label: {
+                            Label(
+                                viewModel.playbackState.isPlaying ? String(localized: "Pause") : String(localized: "Play"),
+                                systemImage: viewModel.playbackState.isPlaying ? "pause.fill" : "play.fill"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.accent)
+                        .foregroundStyle(AppTheme.accentText)
+                        .controlSize(.large)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(AppTheme.spacingM)
+                    .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: AppTheme.radiusM, style: .continuous))
+                }
+                .padding(AppTheme.spacingM)
+                .transition(.opacity)
+            }
+        }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: showsFullscreenControls)
+        .accessibilityAction(named: "Show Controls") {
+            showFullscreenControls()
+        }
+    }
+
+    @ViewBuilder
+    private func fullscreenStage(size: CGSize) -> some View {
+        let spacing = AppTheme.spacingS
+        let fullHeight = max(240, size.height - spacing * 2)
+
+        if viewModel.settings.displayMode == .overlayPreview {
+            overlayStage(height: fullHeight)
+        } else if viewModel.settings.displayMode == .sideBySide {
+            HStack(spacing: spacing) {
+                syncedVideoPane(side: .left, height: fullHeight)
+                syncedVideoPane(side: .right, height: fullHeight)
+            }
+            .padding(.horizontal, spacing)
+        } else {
+            VStack(spacing: spacing) {
+                syncedVideoPane(side: .left, height: max(120, (fullHeight - spacing) / 2))
+                syncedVideoPane(side: .right, height: max(120, (fullHeight - spacing) / 2))
+            }
+            .padding(.vertical, spacing)
         }
     }
 
@@ -336,7 +451,12 @@ struct CompareView: View {
         videoGravity: AVLayerVideoGravity = .resizeAspect
     ) -> some View {
         ZStack(alignment: .topLeading) {
-            ZoomablePlayerSurface(player: viewModel.player(for: side), videoGravity: videoGravity)
+            ZoomablePlayerSurface(
+                player: viewModel.player(for: side),
+                videoGravity: videoGravity,
+                resetTrigger: framingResetTriggers[side, default: 0],
+                onSingleTap: { handlePlayerTap(side) }
+            )
                 .frame(maxWidth: .infinity)
                 .frame(height: height)
                 .background(Color.black)
@@ -395,6 +515,7 @@ struct CompareView: View {
         )
         .simultaneousGesture(overlayPinchGesture)
         .simultaneousGesture(overlayDragGesture)
+        .simultaneousGesture(overlayTapGesture)
     }
 
     private var liveWatermark: some View {
@@ -649,6 +770,17 @@ struct CompareView: View {
                 .proBadgeOverlay(viewModel.settings.playbackRate.requiresPro && !canUse(.slowPlayback))
 
                 Button {
+                    enterFullscreen()
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+                .accessibilityIdentifier("compare.fullscreen.enter")
+                .accessibilityLabel("Enter Full Screen")
+
+                Button {
                     showsSyncedDetails = true
                 } label: {
                     Image(systemName: "ellipsis")
@@ -677,6 +809,11 @@ struct CompareView: View {
                 .accessibilityIdentifier("compare.export")
                 .accessibilityLabel("Export")
             }
+
+            if isCompact {
+                stepSelector(wrapsDenseControls: true)
+                loopControls(isCompact: true, wrapsDenseControls: true)
+            }
         }
     }
 
@@ -686,6 +823,28 @@ struct CompareView: View {
             playbackRateSelector(wrapsDenseControls: true)
             stepSelector(wrapsDenseControls: true)
             loopControls(wrapsDenseControls: true)
+
+            HStack(spacing: AppTheme.spacingS) {
+                Button {
+                    resetFraming(.left)
+                } label: {
+                    Label(viewModel.leftSlot.label, systemImage: "arrow.counterclockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+                .accessibilityLabel("\(String(localized: "Reset Framing")) \(viewModel.leftSlot.label)")
+
+                Button {
+                    resetFraming(.right)
+                } label: {
+                    Label(viewModel.rightSlot.label, systemImage: "arrow.counterclockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+                .accessibilityLabel("\(String(localized: "Reset Framing")) \(viewModel.rightSlot.label)")
+            }
 
             HStack(spacing: AppTheme.spacingS) {
                 Button {
@@ -1245,6 +1404,69 @@ struct CompareView: View {
                     $0.translateY += value.translation.height
                 }
             }
+    }
+
+    private var overlayTapGesture: some Gesture {
+        TapGesture(count: 2)
+            .exclusively(before: TapGesture())
+            .onEnded { value in
+                switch value {
+                case .first:
+                    resetOverlayTransform()
+                case .second:
+                    handlePlayerTap(viewModel.overlaySettings.editingSide)
+                }
+            }
+    }
+
+    private func handlePlayerTap(_ side: VideoSide) {
+        if isFullscreen, !showsFullscreenControls {
+            showFullscreenControls()
+            return
+        }
+
+        if viewModel.compareMode == .setup {
+            viewModel.toggleSlotPlayback(side)
+        } else {
+            Task {
+                await viewModel.togglePlayback()
+                if isFullscreen {
+                    showFullscreenControls()
+                }
+            }
+        }
+    }
+
+    private func resetFraming(_ side: VideoSide) {
+        framingResetTriggers[side, default: 0] += 1
+        viewModel.resetViewTransform(side)
+    }
+
+    private func enterFullscreen() {
+        isFullscreen = true
+        showFullscreenControls()
+    }
+
+    private func exitFullscreen() {
+        fullscreenAutoHideTask?.cancel()
+        isFullscreen = false
+        showsFullscreenControls = true
+    }
+
+    private func showFullscreenControls() {
+        fullscreenAutoHideTask?.cancel()
+        showsFullscreenControls = true
+        guard !UIAccessibility.isVoiceOverRunning else {
+            return
+        }
+
+        fullscreenAutoHideTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled, isFullscreen else {
+                return
+            }
+            showsFullscreenControls = false
+        }
     }
 
     private func syncBadge(slot: VideoSlotState) -> some View {
