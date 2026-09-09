@@ -14,6 +14,7 @@ struct CompareView: View {
     @State private var showsSyncedDetails = false
     @State private var showsOverlayDetails = false
     @State private var showsExportSheet = false
+    @State private var startsWithQuickExport = false
     @State private var proPaywallFeature: ProFeature?
     @State private var hasTrialAccess = false
     @State private var trialVideoPairIdentity: String?
@@ -97,8 +98,14 @@ struct CompareView: View {
         .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
         .toolbarBackground(AppTheme.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .sheet(isPresented: $showsExportSheet) {
-            ExportView(viewModel: viewModel, hasTrialAccess: hasTrialAccess)
+        .sheet(isPresented: $showsExportSheet, onDismiss: {
+            startsWithQuickExport = false
+        }) {
+            ExportView(
+                viewModel: viewModel,
+                hasTrialAccess: hasTrialAccess,
+                startsWithQuickExport: startsWithQuickExport
+            )
                 .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showsSyncedDetails) {
@@ -450,12 +457,19 @@ struct CompareView: View {
         showsSideLabel: Bool = true,
         videoGravity: AVLayerVideoGravity = .resizeAspect
     ) -> some View {
+        let slot = viewModel.slot(for: side)
+
         ZStack(alignment: .topLeading) {
             ZoomablePlayerSurface(
                 player: viewModel.player(for: side),
                 videoGravity: videoGravity,
+                viewScale: slot.viewScale,
+                viewOffset: CGSize(width: slot.viewOffsetX, height: slot.viewOffsetY),
                 resetTrigger: framingResetTriggers[side, default: 0],
-                onSingleTap: { handlePlayerTap(side) }
+                onSingleTap: { handlePlayerTap(side) },
+                onTransformChanged: { scale, offset in
+                    viewModel.setViewTransform(side, scale: scale, offset: offset)
+                }
             )
                 .frame(maxWidth: .infinity)
                 .frame(height: height)
@@ -792,13 +806,14 @@ struct CompareView: View {
                 .accessibilityLabel("Advanced Settings")
 
                 Button {
+                    startsWithQuickExport = SettingsStore().quickExportPreset != nil
                     showsExportSheet = true
                 } label: {
                     if viewModel.isExporting {
                         ProgressView()
                             .frame(width: 34, height: 34)
                     } else {
-                        Image(systemName: "square.and.arrow.down")
+                        Image(systemName: SettingsStore().quickExportPreset == nil ? "square.and.arrow.down" : "bolt.fill")
                             .frame(width: 34, height: 34)
                     }
                 }
@@ -807,7 +822,7 @@ struct CompareView: View {
                 .disabled(viewModel.isExporting)
                 .proBadgeOverlay(!hasFullAccess)
                 .accessibilityIdentifier("compare.export")
-                .accessibilityLabel("Export")
+                .accessibilityLabel(SettingsStore().quickExportPreset == nil ? "Export" : "Quick Export")
             }
 
             if isCompact {
@@ -845,6 +860,21 @@ struct CompareView: View {
                 .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
                 .accessibilityLabel("\(String(localized: "Reset Framing")) \(viewModel.rightSlot.label)")
             }
+
+            Button {
+                showsSyncedDetails = false
+                Task { @MainActor in
+                    await Task.yield()
+                    startsWithQuickExport = false
+                    showsExportSheet = true
+                }
+            } label: {
+                Label("Export Options", systemImage: "slider.horizontal.3")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+            .accessibilityIdentifier("compare.export.options")
 
             HStack(spacing: AppTheme.spacingS) {
                 Button {

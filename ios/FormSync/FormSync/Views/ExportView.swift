@@ -4,16 +4,32 @@ import UIKit
 struct ExportView: View {
     @ObservedObject var viewModel: CompareViewModel
     let hasTrialAccess: Bool
+    private let startsWithQuickExport: Bool
+    private let settingsStore: SettingsStore
     @EnvironmentObject private var purchaseManager: PurchaseManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
-    @State private var options = ExportOptions()
+    @State private var options: ExportOptions
+    @State private var hasStartedQuickExport = false
     @State private var exportTask: Task<Void, Never>?
     @State private var shareResult: ExportResult?
     @State private var pendingSharedExportURL: URL?
     @State private var proPaywallFeature: ProFeature?
     @State private var backgroundTask = ExportBackgroundTask()
+
+    init(
+        viewModel: CompareViewModel,
+        hasTrialAccess: Bool,
+        startsWithQuickExport: Bool = false,
+        settingsStore: SettingsStore = SettingsStore()
+    ) {
+        _viewModel = ObservedObject(wrappedValue: viewModel)
+        self.hasTrialAccess = hasTrialAccess
+        self.startsWithQuickExport = startsWithQuickExport
+        self.settingsStore = settingsStore
+        _options = State(initialValue: settingsStore.quickExportPreset?.options ?? ExportOptions())
+    }
 
     var body: some View {
         NavigationStack {
@@ -57,6 +73,9 @@ struct ExportView: View {
             }
             .onDisappear {
                 cancelExport()
+            }
+            .onAppear {
+                startQuickExportIfPossible()
             }
         }
     }
@@ -470,10 +489,11 @@ struct ExportView: View {
     }
 
     private func startPhotoSave() {
-        guard exportTask == nil else {
+        guard exportTask == nil, canStartExport else {
             return
         }
 
+        saveQuickExportPreset(destination: .photoLibrary)
         startBackgroundTask()
         exportTask = Task { @MainActor in
             defer {
@@ -485,10 +505,11 @@ struct ExportView: View {
     }
 
     private func startShare() {
-        guard exportTask == nil else {
+        guard exportTask == nil, canStartExport else {
             return
         }
 
+        saveQuickExportPreset(destination: .share)
         startBackgroundTask()
         exportTask = Task { @MainActor in
             defer {
@@ -501,6 +522,42 @@ struct ExportView: View {
                 shareResult = result
             }
         }
+    }
+
+    private func startQuickExportIfPossible() {
+        guard startsWithQuickExport, !hasStartedQuickExport else {
+            return
+        }
+        hasStartedQuickExport = true
+
+        guard let preset = settingsStore.quickExportPreset?.validated(
+            hasFullAccess: hasFullAccess,
+            canExportLoopRange: viewModel.canExportLoopRange
+        ) else {
+            options = ExportOptions()
+            return
+        }
+
+        options = preset.options
+        switch preset.destination {
+        case .photoLibrary:
+            startPhotoSave()
+        case .share:
+            startShare()
+        }
+    }
+
+    private func saveQuickExportPreset(destination: ExportDestination) {
+        let current = effectiveOptions
+        settingsStore.saveQuickExportPreset(
+            QuickExportPreset(
+                format: current.format,
+                range: current.range,
+                resolution: current.resolution,
+                audioSource: current.audioSource,
+                destination: destination
+            )
+        )
     }
 
     private func startBackgroundTask() {

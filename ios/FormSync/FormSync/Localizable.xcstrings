@@ -523,6 +523,22 @@
         }
       }
     },
+    "Default Layout" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルトレイアウト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기본 레이아웃"
+          }
+        }
+      }
+    },
     "Delete %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -669,6 +685,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "내보내기"
+          }
+        }
+      }
+    },
+    "Export Options" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出しオプション"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내보내기 옵션"
           }
         }
       }
@@ -1890,6 +1922,22 @@
         }
       }
     },
+    "Playback Speed" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生速度"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재생 속도"
+          }
+        }
+      }
+    },
     "Playback speed could not be changed." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2053,6 +2101,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "기준 %@"
+          }
+        }
+      }
+    },
+    "Quick Export" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイック書き出し"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 내보내기"
+          }
+        }
+      }
+    },
+    "Quick Export Preset" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイック書き出しプリセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 내보내기 프리셋"
+          }
+        }
+      }
+    },
+    "Quick Export preset was reset." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイック書き出しプリセットをリセットしました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 내보내기 프리셋을 재설정했습니다."
           }
         }
       }
@@ -2222,6 +2318,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "겹치기 조정 초기화"
+          }
+        }
+      }
+    },
+    "Reset Quick Export Preset" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クイック書き出しプリセットをリセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 내보내기 프리셋 재설정"
           }
         }
       }
@@ -3942,6 +4054,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "KinePair의 새로운 기능"
+          }
+        }
+      }
+    },
+    "Your latest export choices will appear here." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最後に使用した書き出し設定がここに表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마지막으로 사용한 내보내기 설정이 여기에 표시됩니다."
           }
         }
       }

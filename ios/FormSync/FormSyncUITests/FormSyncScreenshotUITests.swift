@@ -136,7 +136,8 @@ final class FormSyncScreenshotUITests: XCTestCase {
         app.launchArguments += [
             "-AppleLanguages", "(\(language))",
             "-AppleLocale", locale,
-            "-resetComparisonDefaultsForUITests"
+            "-resetComparisonDefaultsForUITests",
+            "-resetQuickExportPresetForUITests"
         ]
         app.launch()
         dismissOnboardingIfNeeded()

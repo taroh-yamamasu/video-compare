@@ -36,21 +36,30 @@ struct ZoomablePlayerSurface: UIViewRepresentable {
     let player: AVPlayer
     let videoGravity: AVLayerVideoGravity
     let maximumZoomScale: CGFloat
+    let viewScale: Double
+    let viewOffset: CGSize
     let resetTrigger: Int
     let onSingleTap: () -> Void
+    let onTransformChanged: (Double, CGSize) -> Void
 
     init(
         player: AVPlayer,
         videoGravity: AVLayerVideoGravity = .resizeAspect,
         maximumZoomScale: CGFloat = 4,
+        viewScale: Double = 1,
+        viewOffset: CGSize = .zero,
         resetTrigger: Int = 0,
-        onSingleTap: @escaping () -> Void = {}
+        onSingleTap: @escaping () -> Void = {},
+        onTransformChanged: @escaping (Double, CGSize) -> Void = { _, _ in }
     ) {
         self.player = player
         self.videoGravity = videoGravity
         self.maximumZoomScale = maximumZoomScale
+        self.viewScale = viewScale
+        self.viewOffset = viewOffset
         self.resetTrigger = resetTrigger
         self.onSingleTap = onSingleTap
+        self.onTransformChanged = onTransformChanged
     }
 
     func makeUIView(context: Context) -> ZoomablePlayerScrollView {
@@ -59,8 +68,11 @@ struct ZoomablePlayerSurface: UIViewRepresentable {
             player: player,
             videoGravity: videoGravity,
             maximumZoomScale: maximumZoomScale,
+            viewScale: viewScale,
+            viewOffset: viewOffset,
             resetTrigger: resetTrigger,
-            onSingleTap: onSingleTap
+            onSingleTap: onSingleTap,
+            onTransformChanged: onTransformChanged
         )
         return view
     }
@@ -70,8 +82,11 @@ struct ZoomablePlayerSurface: UIViewRepresentable {
             player: player,
             videoGravity: videoGravity,
             maximumZoomScale: maximumZoomScale,
+            viewScale: viewScale,
+            viewOffset: viewOffset,
             resetTrigger: resetTrigger,
-            onSingleTap: onSingleTap
+            onSingleTap: onSingleTap,
+            onTransformChanged: onTransformChanged
         )
     }
 
@@ -84,7 +99,10 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
     private let playerView = PlayerContainerView()
     private var laidOutSize: CGSize = .zero
     private var resetTrigger = 0
+    private var requestedScale: CGFloat = 1
+    private var requestedOffset: CGPoint = .zero
     private var onSingleTap: () -> Void = {}
+    private var onTransformChanged: (Double, CGSize) -> Void = { _, _ in }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -100,10 +118,16 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
         player: AVPlayer,
         videoGravity: AVLayerVideoGravity,
         maximumZoomScale: CGFloat,
+        viewScale: Double,
+        viewOffset: CGSize,
         resetTrigger: Int,
-        onSingleTap: @escaping () -> Void
+        onSingleTap: @escaping () -> Void,
+        onTransformChanged: @escaping (Double, CGSize) -> Void
     ) {
         self.onSingleTap = onSingleTap
+        self.onTransformChanged = onTransformChanged
+        requestedScale = CGFloat(viewScale)
+        requestedOffset = CGPoint(x: viewOffset.width, y: viewOffset.height)
         if self.maximumZoomScale != maximumZoomScale {
             self.maximumZoomScale = maximumZoomScale
         }
@@ -117,6 +141,7 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
             self.resetTrigger = resetTrigger
             resetFraming(animated: true)
         }
+        applyRequestedTransform()
     }
 
     func clearPlayer() {
@@ -141,6 +166,7 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
 
         updateInsets()
         updatePanState()
+        applyRequestedTransform()
     }
 
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -154,6 +180,17 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
 
     func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
         updatePanState()
+        reportTransform()
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate {
+            reportTransform()
+        }
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        reportTransform()
     }
 
     private func configureScrollView() {
@@ -195,12 +232,38 @@ final class ZoomablePlayerScrollView: UIScrollView, UIScrollViewDelegate {
         panGestureRecognizer.isEnabled = zoomScale > minimumZoomScale + 0.01
     }
 
+    private func applyRequestedTransform() {
+        guard laidOutSize != .zero, !isTracking, !isDragging, !isDecelerating, !isZooming else {
+            return
+        }
+
+        let scale = min(max(requestedScale, minimumZoomScale), maximumZoomScale)
+        if abs(zoomScale - scale) > 0.001 {
+            setZoomScale(scale, animated: false)
+        }
+        if abs(contentOffset.x - requestedOffset.x) > 0.5 || abs(contentOffset.y - requestedOffset.y) > 0.5 {
+            setContentOffset(requestedOffset, animated: false)
+        }
+    }
+
+    private func reportTransform() {
+        requestedScale = zoomScale
+        requestedOffset = contentOffset
+        onTransformChanged(
+            Double(zoomScale),
+            CGSize(width: contentOffset.x, height: contentOffset.y)
+        )
+    }
+
     @objc private func handleSingleTap() {
         onSingleTap()
     }
 
     @objc private func handleDoubleTap() {
         resetFraming(animated: true)
+        requestedScale = minimumZoomScale
+        requestedOffset = .zero
+        onTransformChanged(Double(minimumZoomScale), .zero)
     }
 
     private func resetFraming(animated: Bool) {

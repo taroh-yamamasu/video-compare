@@ -152,6 +152,101 @@ final class TrialAccessTests: XCTestCase {
         XCTAssertNil(pair.session)
     }
 
+    func testComparisonDefaultsMigrateLegacyValuesAndResetIndependently() {
+        let identifier = UUID().uuidString
+        let defaults = UserDefaults(suiteName: identifier)!
+        defaults.removePersistentDomain(forName: identifier)
+        var settings = SettingsStore(defaults: defaults)
+        settings.lastPlaybackRate = .half
+        settings.lastDisplayMode = .stacked
+        let preset = QuickExportPreset(
+            format: .image,
+            range: .currentFrame,
+            resolution: .p720,
+            audioSource: .none,
+            destination: .share
+        )
+        settings.saveQuickExportPreset(preset)
+
+        let migrated = settings.comparisonDefaults
+        XCTAssertEqual(migrated.playbackRate, .half)
+        XCTAssertEqual(migrated.displayMode, .stacked)
+        XCTAssertEqual(migrated.stepSeconds, 0.1)
+
+        settings.resetComparisonDefaults()
+        XCTAssertEqual(settings.comparisonDefaults, ComparisonDefaults())
+        XCTAssertEqual(settings.quickExportPreset, preset)
+    }
+
+    func testQuickExportPresetIsValidatedAgainstAccessAndLoopState() {
+        let proVideo = QuickExportPreset(
+            format: .video,
+            range: .loop,
+            resolution: .p1080,
+            audioSource: .left,
+            destination: .photoLibrary
+        )
+        let freeImage = QuickExportPreset(
+            format: .image,
+            range: .full,
+            resolution: .p720,
+            audioSource: .right,
+            destination: .share
+        )
+
+        XCTAssertNil(proVideo.validated(hasFullAccess: false, canExportLoopRange: true))
+        XCTAssertNil(proVideo.validated(hasFullAccess: true, canExportLoopRange: false))
+        XCTAssertEqual(
+            proVideo.validated(hasFullAccess: true, canExportLoopRange: true),
+            proVideo
+        )
+        XCTAssertEqual(
+            freeImage.validated(hasFullAccess: false, canExportLoopRange: false)?.range,
+            .currentFrame
+        )
+        XCTAssertEqual(
+            freeImage.validated(hasFullAccess: false, canExportLoopRange: false)?.audioSource,
+            ExportAudioSource.none
+        )
+    }
+
+    @MainActor
+    func testSyncedSessionRestoresPhaseTimelineAndFraming() {
+        var leftSlot = makeSessionSlot(fileName: "left.mov")
+        leftSlot.hasSyncPoint = true
+        leftSlot.syncPointSeconds = 0.25
+        leftSlot.viewScale = 2
+        leftSlot.viewOffsetX = 18
+        leftSlot.viewOffsetY = 24
+        var rightSlot = makeSessionSlot(fileName: "right.mov")
+        rightSlot.hasSyncPoint = true
+        rightSlot.syncPointSeconds = 0.5
+        let session = CompareSession(
+            id: UUID(),
+            createdAt: Date(),
+            updatedAt: Date(),
+            title: "Synced",
+            leftSlot: leftSlot,
+            rightSlot: rightSlot,
+            settings: CompareSettings(),
+            overlaySettings: OverlaySettings(),
+            compareMode: .synced,
+            timelineSeconds: 0.75
+        )
+        let viewModel = CompareViewModel(
+            leftVideo: VideoItem(url: URL(fileURLWithPath: "/left.mov"), fileName: "Left", durationSeconds: 2),
+            rightVideo: VideoItem(url: URL(fileURLWithPath: "/right.mov"), fileName: "Right", durationSeconds: 2),
+            session: session,
+            ownsTemporaryVideos: false
+        )
+
+        XCTAssertEqual(viewModel.compareMode, .synced)
+        XCTAssertEqual(viewModel.playbackState.timelineSeconds, 0.75)
+        XCTAssertEqual(viewModel.leftSlot.viewScale, 2)
+        XCTAssertEqual(viewModel.leftSlot.viewOffsetX, 18)
+        XCTAssertEqual(viewModel.leftSlot.viewOffsetY, 24)
+    }
+
     @MainActor
     func testClearingAReferencePointDisablesComparison() {
         let viewModel = CompareViewModel(

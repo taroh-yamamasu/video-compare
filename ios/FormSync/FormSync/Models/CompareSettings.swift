@@ -93,7 +93,7 @@ struct CompareSettings: Codable, Equatable, Hashable {
     var stepSeconds: Double = 0.1
 }
 
-enum ExportFormat: String, CaseIterable, Identifiable, Hashable {
+enum ExportFormat: String, CaseIterable, Identifiable, Hashable, Codable {
     case image
     case video
 
@@ -109,7 +109,7 @@ enum ExportFormat: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
-enum ExportRange: String, CaseIterable, Identifiable, Hashable {
+enum ExportRange: String, CaseIterable, Identifiable, Hashable, Codable {
     case currentFrame
     case full
     case loop
@@ -128,7 +128,7 @@ enum ExportRange: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
-enum ExportResolution: String, CaseIterable, Identifiable, Hashable {
+enum ExportResolution: String, CaseIterable, Identifiable, Hashable, Codable {
     case p720
     case p1080
 
@@ -161,7 +161,7 @@ enum ExportResolution: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
-enum ExportAudioSource: String, CaseIterable, Identifiable, Hashable {
+enum ExportAudioSource: String, CaseIterable, Identifiable, Hashable, Codable {
     case none
     case left
     case right
@@ -180,7 +180,7 @@ enum ExportAudioSource: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
-enum ExportDestination: String, CaseIterable, Identifiable, Hashable {
+enum ExportDestination: String, CaseIterable, Identifiable, Hashable, Codable {
     case photoLibrary
     case share
 
@@ -193,6 +193,49 @@ struct ExportOptions: Equatable {
     var resolution: ExportResolution = .p720
     var audioSource: ExportAudioSource = .none
     var includesWatermark: Bool = false
+}
+
+struct ComparisonDefaults: Codable, Equatable {
+    var playbackRate: PlaybackRate = .normal
+    var displayMode: DisplayMode = .sideBySide
+    var stepSeconds: Double = 0.1
+}
+
+struct QuickExportPreset: Codable, Equatable {
+    var format: ExportFormat
+    var range: ExportRange
+    var resolution: ExportResolution
+    var audioSource: ExportAudioSource
+    var destination: ExportDestination
+
+    var options: ExportOptions {
+        ExportOptions(
+            format: format,
+            range: range,
+            resolution: resolution,
+            audioSource: audioSource
+        )
+    }
+
+    func validated(hasFullAccess: Bool, canExportLoopRange: Bool) -> QuickExportPreset? {
+        guard hasFullAccess || (format == .image && resolution == .p720) else {
+            return nil
+        }
+
+        var preset = self
+        if preset.format == .image {
+            preset.range = .currentFrame
+            preset.audioSource = .none
+        } else {
+            if preset.range == .currentFrame {
+                preset.range = .full
+            }
+            guard preset.range != .loop || canExportLoopRange else {
+                return nil
+            }
+        }
+        return preset
+    }
 }
 
 struct ExportRequest {

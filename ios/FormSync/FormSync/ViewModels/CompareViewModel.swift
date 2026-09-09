@@ -57,9 +57,11 @@ final class CompareViewModel: ObservableObject {
             self.leftSlot = VideoSlotState(side: .left, video: leftVideo)
             self.rightSlot = VideoSlotState(side: .right, video: rightVideo)
 
+            let defaults = settingsStore.comparisonDefaults
             var initialSettings = CompareSettings()
-            initialSettings.playbackRate = settingsStore.lastPlaybackRate
-            initialSettings.displayMode = settingsStore.lastDisplayMode
+            initialSettings.playbackRate = defaults.playbackRate
+            initialSettings.displayMode = defaults.displayMode
+            initialSettings.stepSeconds = defaults.stepSeconds
             self.settings = initialSettings
         }
 
@@ -387,6 +389,7 @@ final class CompareViewModel: ObservableObject {
 
     func setStepSeconds(_ seconds: Double) {
         settings.stepSeconds = min(max(seconds, 0.001), 1)
+        saveComparisonDefaults()
         persistSession()
     }
 
@@ -433,7 +436,7 @@ final class CompareViewModel: ObservableObject {
     func setPlaybackRate(_ rate: PlaybackRate) {
         settings.playbackRate = rate
         playbackState.playbackRate = rate.rawValue
-        settingsStore.lastPlaybackRate = rate
+        saveComparisonDefaults()
         playerSyncService.setPlaybackRate(rate)
         errorMessage = nil
         persistSession()
@@ -450,7 +453,7 @@ final class CompareViewModel: ObservableObject {
         }
 
         settings.displayMode = mode
-        settingsStore.lastDisplayMode = mode
+        saveComparisonDefaults()
         persistSession()
 
         guard compareMode == .synced else {
@@ -463,6 +466,16 @@ final class CompareViewModel: ObservableObject {
                 await playSynced()
             }
         }
+    }
+
+    private func saveComparisonDefaults() {
+        settingsStore.saveComparisonDefaults(
+            ComparisonDefaults(
+                playbackRate: settings.playbackRate,
+                displayMode: settings.displayMode,
+                stepSeconds: settings.stepSeconds
+            )
+        )
     }
 
     func markLoopStart() {
@@ -528,23 +541,15 @@ final class CompareViewModel: ObservableObject {
         persistSession()
     }
 
-    func updateViewScale(_ side: VideoSide, delta: Double) {
-        var slot = slot(for: side)
-        slot.viewScale = clampedViewScale(slot.viewScale + delta)
-        if slot.viewScale <= 1 {
-            slot.viewOffsetX = 0
-            slot.viewOffsetY = 0
-        }
-        setSlot(slot)
-        scheduleSessionPersistence()
-    }
-
-    func setViewScale(_ side: VideoSide, scale: Double) {
+    func setViewTransform(_ side: VideoSide, scale: Double, offset: CGSize) {
         var slot = slot(for: side)
         slot.viewScale = clampedViewScale(scale)
         if slot.viewScale <= 1 {
             slot.viewOffsetX = 0
             slot.viewOffsetY = 0
+        } else {
+            slot.viewOffsetX = offset.width
+            slot.viewOffsetY = offset.height
         }
         setSlot(slot)
         scheduleSessionPersistence()
@@ -557,18 +562,6 @@ final class CompareViewModel: ObservableObject {
         slot.viewOffsetY = 0
         setSlot(slot)
         persistSession()
-    }
-
-    func panView(_ side: VideoSide, translation: CGSize) {
-        var slot = slot(for: side)
-        guard slot.viewScale > 1 else {
-            return
-        }
-
-        slot.viewOffsetX += translation.width
-        slot.viewOffsetY += translation.height
-        setSlot(slot)
-        scheduleSessionPersistence()
     }
 
     func updateOverlayEditingSide(_ side: VideoSide) {

@@ -872,6 +872,9 @@ private struct SettingsView: View {
     @State private var showsAdvancedSettings = false
     @State private var showsTutorial = false
     @State private var showsPrivacyPolicy = false
+    @State private var comparisonDefaults = SettingsStore().comparisonDefaults
+    @State private var quickExportPreset = SettingsStore().quickExportPreset
+    @State private var proPaywallFeature: ProFeature?
 
     private let settingsStore = SettingsStore()
     private let privacyPolicyURL = URL(
@@ -911,6 +914,10 @@ private struct SettingsView: View {
                 SafariView(url: privacyPolicyURL)
                     .ignoresSafeArea()
             }
+            .sheet(item: $proPaywallFeature) { feature in
+                ProPaywallView(feature: feature)
+                    .presentationDetents([.medium, .large])
+            }
         }
     }
 
@@ -948,23 +955,27 @@ private struct SettingsView: View {
 
     private var comparisonSettingsSection: some View {
         settingsSection(title: "Comparison") {
-            SettingsInfoRow(
-                systemImage: "1.circle",
-                title: "Reference Points",
-                detail: "Set the moment used to align each video."
-            )
+            Picker("Playback Speed", selection: playbackRateBinding) {
+                ForEach(PlaybackRate.allCases) { rate in
+                    Text(rate.label).tag(rate)
+                }
+            }
+            .pickerStyle(.menu)
             SettingsDivider()
-            SettingsInfoRow(
-                systemImage: "2.circle",
-                title: "Synchronized Playback",
-                detail: "After setup, control both videos with one seek bar and frame stepping."
-            )
+            Picker("Default Layout", selection: displayModeBinding) {
+                ForEach(DisplayMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+            .pickerStyle(.menu)
             SettingsDivider()
-            SettingsInfoRow(
-                systemImage: "3.circle",
-                title: "Layouts",
-                detail: "Switch between side-by-side, stacked, and overlay layouts."
-            )
+            Picker("Frame Step (Seconds)", selection: stepSecondsBinding) {
+                Text("1/60 sec").tag(1.0 / 60.0)
+                Text("1/30 sec").tag(1.0 / 30.0)
+                Text("1/10 sec").tag(0.1)
+                Text("1/2 sec").tag(0.5)
+            }
+            .pickerStyle(.menu)
             SettingsDivider()
             Button {
                 showsTutorial = true
@@ -979,17 +990,30 @@ private struct SettingsView: View {
 
     private var exportSettingsSection: some View {
         settingsSection(title: "Export and Share") {
-            SettingsInfoRow(
-                systemImage: "square.and.arrow.down",
-                title: "Export",
-                detail: "Save to Photos or share as an image or video."
-            )
-            SettingsDivider()
-            SettingsInfoRow(
-                systemImage: "externaldrive",
-                title: "Long Videos",
-                detail: "For demanding videos, 720p or a loop range may export more reliably."
-            )
+            if let quickExportPreset {
+                SettingsInfoRow(
+                    systemImage: "bolt.fill",
+                    title: "Quick Export Preset",
+                    detail: quickExportDescription(quickExportPreset)
+                )
+                SettingsDivider()
+                Button(role: .destructive) {
+                    settingsStore.resetQuickExportPreset()
+                    self.quickExportPreset = nil
+                    resetMessage = String(localized: "Quick Export preset was reset.")
+                } label: {
+                    Label("Reset Quick Export Preset", systemImage: "arrow.counterclockwise")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.roundedRectangle(radius: AppTheme.radiusS))
+            } else {
+                SettingsInfoRow(
+                    systemImage: "bolt",
+                    title: "Quick Export Preset",
+                    detail: "Your latest export choices will appear here."
+                )
+            }
         }
     }
 
@@ -1023,6 +1047,7 @@ private struct SettingsView: View {
 
                 Button(role: .destructive) {
                     settingsStore.resetComparisonDefaults()
+                    comparisonDefaults = ComparisonDefaults()
                     resetMessage = String(localized: "Comparison settings were reset.")
                 } label: {
                     Label("Reset Comparison Settings", systemImage: "arrow.counterclockwise")
@@ -1067,6 +1092,55 @@ private struct SettingsView: View {
                 .foregroundStyle(AppTheme.secondaryText)
         }
         .appCard()
+    }
+
+    private var playbackRateBinding: Binding<PlaybackRate> {
+        Binding(
+            get: { comparisonDefaults.playbackRate },
+            set: { rate in
+                guard purchaseManager.isProUnlocked || !rate.requiresPro else {
+                    proPaywallFeature = .slowPlayback
+                    return
+                }
+                comparisonDefaults.playbackRate = rate
+                settingsStore.saveComparisonDefaults(comparisonDefaults)
+            }
+        )
+    }
+
+    private var displayModeBinding: Binding<DisplayMode> {
+        Binding(
+            get: { comparisonDefaults.displayMode },
+            set: { mode in
+                guard purchaseManager.isProUnlocked || !mode.requiresPro else {
+                    proPaywallFeature = .overlay
+                    return
+                }
+                comparisonDefaults.displayMode = mode
+                settingsStore.saveComparisonDefaults(comparisonDefaults)
+            }
+        )
+    }
+
+    private var stepSecondsBinding: Binding<Double> {
+        Binding(
+            get: { comparisonDefaults.stepSeconds },
+            set: { seconds in
+                guard purchaseManager.isProUnlocked || abs(seconds - 0.1) < 0.0001 else {
+                    proPaywallFeature = .frameStep
+                    return
+                }
+                comparisonDefaults.stepSeconds = seconds
+                settingsStore.saveComparisonDefaults(comparisonDefaults)
+            }
+        )
+    }
+
+    private func quickExportDescription(_ preset: QuickExportPreset) -> String {
+        let destination = preset.destination == .photoLibrary
+            ? String(localized: "Save to Photos")
+            : String(localized: "Share")
+        return "\(preset.format.label) / \(preset.range.label) / \(preset.resolution.label) / \(destination)"
     }
 
     private var privacySettingsSection: some View {

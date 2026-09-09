@@ -4,6 +4,8 @@ struct SettingsStore {
     private enum Key {
         static let lastPlaybackRate = "lastPlaybackRate"
         static let lastDisplayMode = "lastDisplayMode"
+        static let comparisonDefaults = "comparisonDefaults"
+        static let quickExportPreset = "quickExportPreset"
         static let hasSeenOnboarding = "hasSeenOnboarding"
         static let hasRequestedReview = "hasRequestedReview"
         static let pendingReviewRequest = "pendingReviewRequest"
@@ -40,6 +42,49 @@ struct SettingsStore {
         }
     }
 
+    var comparisonDefaults: ComparisonDefaults {
+        if let data = defaults.data(forKey: Key.comparisonDefaults),
+           let stored = try? JSONDecoder().decode(ComparisonDefaults.self, from: data) {
+            return stored
+        }
+
+        var migrated = ComparisonDefaults()
+        if defaults.object(forKey: Key.lastPlaybackRate) != nil {
+            migrated.playbackRate = lastPlaybackRate
+        }
+        if defaults.object(forKey: Key.lastDisplayMode) != nil {
+            migrated.displayMode = lastDisplayMode
+        }
+        saveComparisonDefaults(migrated)
+        return migrated
+    }
+
+    var quickExportPreset: QuickExportPreset? {
+        guard let data = defaults.data(forKey: Key.quickExportPreset) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(QuickExportPreset.self, from: data)
+    }
+
+    func saveComparisonDefaults(_ value: ComparisonDefaults) {
+        if let data = try? JSONEncoder().encode(value) {
+            defaults.set(data, forKey: Key.comparisonDefaults)
+        }
+        defaults.set(value.playbackRate.rawValue, forKey: Key.lastPlaybackRate)
+        defaults.set(value.displayMode.rawValue, forKey: Key.lastDisplayMode)
+    }
+
+    func saveQuickExportPreset(_ value: QuickExportPreset) {
+        guard let data = try? JSONEncoder().encode(value) else {
+            return
+        }
+        defaults.set(data, forKey: Key.quickExportPreset)
+    }
+
+    func resetQuickExportPreset() {
+        defaults.removeObject(forKey: Key.quickExportPreset)
+    }
+
     var hasSeenOnboarding: Bool {
         get {
             defaults.bool(forKey: Key.hasSeenOnboarding)
@@ -58,6 +103,7 @@ struct SettingsStore {
     }
 
     func resetComparisonDefaults() {
+        defaults.removeObject(forKey: Key.comparisonDefaults)
         defaults.removeObject(forKey: Key.lastPlaybackRate)
         defaults.removeObject(forKey: Key.lastDisplayMode)
     }

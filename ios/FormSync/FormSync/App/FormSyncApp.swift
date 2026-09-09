@@ -14,6 +14,9 @@ struct FormSyncApp: App {
         if ProcessInfo.processInfo.arguments.contains("-resetComparisonDefaultsForUITests") {
             SettingsStore().resetComparisonDefaults()
         }
+        if ProcessInfo.processInfo.arguments.contains("-resetQuickExportPresetForUITests") {
+            SettingsStore().resetQuickExportPreset()
+        }
         if ProcessInfo.processInfo.arguments.contains("-showV13UpdateNoticeForUITests") {
             UserDefaults.standard.set(true, forKey: "hasSeenOnboarding")
             UserDefaults.standard.removeObject(forKey: "hasSeenV13UpdateNotice")
